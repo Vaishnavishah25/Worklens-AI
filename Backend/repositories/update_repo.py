@@ -1,8 +1,8 @@
 # app/database/repositories/update_repo.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.database.models.daily_update import DailyUpdate
-from app.database.models.blocker import Blocker
+from models.daily_update import DailyUpdate
+from models.blocker import Blocker
 
 class UpdateRepository:
     def __init__(self, db: AsyncSession):

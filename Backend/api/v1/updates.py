@@ -1,9 +1,9 @@
 # app/api/v1/updates.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database.session import get_db # Utilizing Member 1's active async session engine
-from app.schemas.daily_update import UpdateCreate, UpdateResponse
-from app.services.update_service import UpdateService
+from database.session import get_db # Utilizing Member 1's active async session engine
+from schemas.daily_update import UpdateCreate, UpdateResponse
+from services.update_service import UpdateService
 
 app = APIRouter(prefix="/updates", tags=["Updates"])
 

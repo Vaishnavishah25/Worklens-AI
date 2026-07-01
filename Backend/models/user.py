@@ -10,7 +10,7 @@ from sqlalchemy.orm import (
     relationship
 )
 
-from app.database.base import Base
+from database.base import Base
 
 
 class User(Base):

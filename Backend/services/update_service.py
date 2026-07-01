@@ -1,7 +1,7 @@
 # app/services/update_service.py
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.database.repositories.update_repo import UpdateRepository
-from app.schemas.daily_update import UpdateCreate
+from repositories.update_repo import UpdateRepository
+from schemas.daily_update import UpdateCreate
 
 class UpdateService:
     def __init__(self, db: AsyncSession):

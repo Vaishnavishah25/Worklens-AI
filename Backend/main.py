@@ -3,14 +3,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text 
+from sqlalchemy import text
 
-from app.database.session import engine, get_db 
-from app.database.base import Base
-import app.database.models  
+from database.session import engine, get_db
+from database.base import Base
+import models
 
-from app.schemas.daily_update import UpdateCreate
-from app.services.update_service import UpdateService
+from schemas.daily_update import UpdateCreate
+from services.update_service import UpdateService
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

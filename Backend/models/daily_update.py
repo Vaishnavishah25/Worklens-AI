@@ -20,10 +20,10 @@ class DailyUpdate(Base):
     __tablename__ = "daily_updates"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    employee_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True, nullable=False)
     work_done: Mapped[str] = mapped_column(Text)
-    planned_work: Mapped[str] = mapped_column(Text)
-    confidence_score: Mapped[float] = mapped_column(Float)
+    next_steps: Mapped[str] = mapped_column(Text)
+    confidence_score: Mapped[int] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="updates")

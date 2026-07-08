@@ -59,6 +59,11 @@ class User(Base):
     )
 
     risk_scores = relationship(
-    "RiskScore",
+        "RiskScore",
     back_populates="employee"
+)
+    tasks = relationship(
+        "Task",
+    back_populates="user",
+    cascade="all, delete-orphan"
 )

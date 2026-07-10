@@ -4,6 +4,7 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -12,6 +13,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +28,7 @@ from database.session import engine, get_db
 
 API_PREFIX = "/api/v1"
 JWT_SECRET = "worklens-local-dev-secret"
+VALID_ROLES = {"employee", "mentor", "manager"}
 
 
 USERS = {
@@ -82,6 +85,14 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class SignupRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str = "employee"
+    manager_id: int | None = None
+
+
 class UpdateCreate(BaseModel):
     employee_name: str | None = None
     work_done: str
@@ -136,6 +147,17 @@ async def lifespan(app: FastAPI):
                     "manager_id": user["manager_id"],
                 },
             )
+        await conn.execute(
+            text(
+                """
+                SELECT setval(
+                    pg_get_serial_sequence('users', 'id'),
+                    (SELECT COALESCE(MAX(id), 1) FROM users),
+                    true
+                )
+                """
+            )
+        )
     yield
 
 
@@ -186,6 +208,21 @@ def _decode_token(token: str) -> dict[str, Any]:
         return data
     except Exception as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token") from exc
+
+
+def _hash_password(password: str) -> str:
+    secret = os.getenv("JWT_SECRET", "worklens-dev-secret")
+    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), secret.encode("utf-8"), 100_000).hex()
+
+
+def _verify_password(plain_password: str, hashed_password: str) -> bool:
+    return _hash_password(plain_password) == hashed_password
+
+
+def _password_matches(plain_password: str, stored_password: str) -> bool:
+    if _verify_password(plain_password, stored_password):
+        return True
+    return hmac.compare_digest(plain_password, stored_password)
 
 
 def current_user(authorization: str | None = Header(default=None)) -> dict[str, Any]:
@@ -309,8 +346,62 @@ async def health_check():
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == payload.username.strip().lower()))
     user = result.scalar_one_or_none()
-    if not user or user.password != payload.password:
+    if not user or not _password_matches(payload.password, user.password):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid username or password")
+    token_user = {"id": user.id, "role": user.role, "name": user.name}
+    public_user = {
+        "id": user.id,
+        "name": user.name,
+        "role": user.role,
+        "designation": _designation(user),
+        "email": user.email,
+    }
+    return {
+        "access_token": _token(token_user, 3600),
+        "refresh_token": _token(token_user, 86400),
+        "user": public_user,
+    }
+
+
+@app.post(f"{API_PREFIX}/auth/signup", status_code=201)
+async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
+    email = payload.email.strip().lower()
+    name = payload.name.strip()
+    role = payload.role.strip().lower()
+
+    if not name:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Name is required")
+    if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Enter a valid email address")
+    if len(payload.password) < 8:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Password must be at least 8 characters")
+    if role not in VALID_ROLES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Role must be employee, mentor, or manager")
+
+    existing = await db.execute(select(User).where(User.email == email))
+    if existing.scalar_one_or_none():
+        raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists")
+
+    if payload.manager_id is not None:
+        manager = await db.get(User, payload.manager_id)
+        if not manager:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Selected manager or mentor does not exist")
+
+    user = User(
+        name=name,
+        email=email,
+        password=_hash_password(payload.password),
+        role=role,
+        manager_id=payload.manager_id,
+    )
+    db.add(user)
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists") from exc
+    await db.refresh(user)
+
     token_user = {"id": user.id, "role": user.role, "name": user.name}
     public_user = {
         "id": user.id,
@@ -550,3 +641,13 @@ async def legacy_submit_update(payload: UpdateCreate, db: AsyncSession = Depends
 @app.post("/v1/ai/query")
 async def legacy_ai_query(payload: AIQuery, user=Depends(require_roles("manager"))):
     return await ai_query(payload, user)
+
+
+@app.post("/v1/auth/signup", status_code=201)
+async def legacy_signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
+    return await signup(payload, db)
+
+
+@app.post("/v1/auth/login")
+async def legacy_login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+    return await login(payload, db)

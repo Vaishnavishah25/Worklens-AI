@@ -25,6 +25,35 @@ class AuthService:
         return True, "Login successful."
 
     @classmethod
+    def signup(
+        cls,
+        name: str,
+        email: str,
+        password: str,
+        role: str,
+        manager_id: int | None = None,
+    ) -> tuple[bool, str]:
+        payload = {
+            "name": name.strip(),
+            "email": email.strip().lower(),
+            "password": password,
+            "role": role.strip().lower(),
+            "manager_id": manager_id,
+        }
+        try:
+            response = APIClient.post("/auth/signup", payload, include_auth=False)
+        except APIClientError as exc:
+            return False, exc.user_message
+
+        user = response["user"]
+        SessionManager.login(
+            user=user,
+            access_token=response["access_token"],
+            refresh_token=response["refresh_token"],
+        )
+        return True, "Account created successfully."
+
+    @classmethod
     def logout(cls):
         SessionManager.logout()
 

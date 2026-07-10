@@ -63,7 +63,7 @@ def show_mentor_dashboard() -> None:
         metric_card("Avg confidence", f"{sum(m['confidence'] for m in mentees) / max(len(mentees), 1):.1f}", "Backend", "success")
 
     st.subheader("Assigned mentees")
-    st.dataframe(_mentee_frame(mentees), hide_index=True, use_container_width=True)
+    st.dataframe(_mentee_frame(mentees), hide_index=True, width="stretch")
     if not mentees:
         empty_state("No assigned mentees", "Assigned mentees will appear here once available.")
 
@@ -84,7 +84,7 @@ def feedback_composer(employee: dict | None = None) -> None:
         visibility = st.radio("Visibility", ["Employee only", "Employee and manager"], horizontal=True)
         message = st.text_area("Message", max_chars=1000, placeholder="Write specific, actionable feedback...")
         st.caption(f"{len(message)} / 1000 characters")
-        sent = st.form_submit_button(f"Send feedback to {selected['name']}", type="primary", use_container_width=True)
+        sent = st.form_submit_button(f"Send feedback to {selected['name']}", type="primary", width="stretch")
     if sent:
         if len(message.strip()) < 10:
             st.error("Feedback must be at least 10 characters.")
@@ -107,7 +107,7 @@ def feedback_history(employee_id: int | None = None) -> None:
     except Exception as exc:
         _handle_error(exc)
         return
-    st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
 
 
 def show_mentees_page() -> None:

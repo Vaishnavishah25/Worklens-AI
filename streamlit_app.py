@@ -386,7 +386,7 @@ def login_screen() -> None:
             email = st.text_input("Email / Username", placeholder="manager@worklens.ai")
             password = st.text_input("Password", type="password")
             remember = st.checkbox("Remember me", value=True)
-            submitted = st.form_submit_button("Log in", use_container_width=True, type="primary")
+            submitted = st.form_submit_button("Log in", width="stretch", type="primary")
         with st.expander("Demo credentials", expanded=True):
             st.code(
                 "Manager  manager@worklens.ai / manager123\n"
@@ -416,11 +416,11 @@ def sidebar() -> None:
     st.sidebar.markdown(badge(user["role"], "type-ai" if user["role"] == "Manager" else "type-teal"), unsafe_allow_html=True)
     st.sidebar.divider()
     for item in nav:
-        if st.sidebar.button(item, key=f"nav_{item}", use_container_width=True):
+        if st.sidebar.button(item, key=f"nav_{item}", width="stretch"):
             st.session_state.page = item
     st.sidebar.divider()
     st.sidebar.caption(f"{user['name']} · {user['title']}")
-    if st.sidebar.button("Logout", use_container_width=True):
+    if st.sidebar.button("Logout", width="stretch"):
         st.session_state.authenticated = False
         st.session_state.user = None
         st.session_state.page = "Dashboard"
@@ -462,10 +462,10 @@ def employee_dashboard() -> None:
             unsafe_allow_html=True,
         )
     with col2:
-        if st.button("Submit daily update", type="primary", use_container_width=True):
+        if st.button("Submit daily update", type="primary", width="stretch"):
             st.session_state.page = "Daily Update"
             st.rerun()
-        st.button("View last update", use_container_width=True)
+        st.button("View last update", width="stretch")
     k1, k2, k3, k4, k5 = st.columns(5)
     k1.metric("Daily streak", "8 days", "+2")
     k2.metric("Confidence trend", "3.6 / 5", "-0.4")
@@ -492,7 +492,7 @@ def daily_update() -> None:
         severity = st.segmented_control("Severity", ["None", "Low", "Medium", "High", "Critical"], default="None")
         next_steps = st.text_area("Next Steps", placeholder="What are you planning to do next?", height=100)
         confidence = st.slider("Confidence", min_value=1, max_value=5, value=4)
-        submitted = st.form_submit_button("Submit update", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Submit update", type="primary", width="stretch")
     if submitted:
         if not work_done or not next_steps:
             st.error("Please complete Work Done and Next Steps before submitting.")
@@ -645,13 +645,13 @@ def team_risk_table() -> None:
     st.dataframe(
         display[["Employee", "Last Update", "Risk Score", "Risk Label", "Risk Trend", "Open Blockers", "Overdue Tasks"]],
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )
     st.caption("Actions: view profile, prepare 1:1, message mentor, ask AI, create action item.")
  
  
 def blockers_table() -> None:
-    st.dataframe(BLOCKERS, hide_index=True, use_container_width=True)
+    st.dataframe(BLOCKERS, hide_index=True, width="stretch")
     st.caption("Critical and aging blockers should be triaged first.")
  
  
@@ -704,9 +704,9 @@ def blockers_page() -> None:
     top_bar("Active Blockers", "Track severity, age, status, ownership, and escalation.")
     blockers_table()
     c1, c2, c3 = st.columns(3)
-    c1.button("Assign owner", use_container_width=True)
-    c2.button("Escalate selected", use_container_width=True)
-    c3.button("Mark resolved", use_container_width=True)
+    c1.button("Assign owner", width="stretch")
+    c2.button("Escalate selected", width="stretch")
+    c3.button("Mark resolved", width="stretch")
  
  
 def ai_assistant_page() -> None:
@@ -715,7 +715,7 @@ def ai_assistant_page() -> None:
     with history:
         st.subheader("History")
         for item in ["Sprint risk review", "1:1 prep for Anita", "Weekly blocker summary"]:
-            st.button(item, use_container_width=True)
+            st.button(item, width="stretch")
         st.subheader("Suggested prompts")
         for prompt in ["Who needs immediate help?", "What is blocking the sprint?", "Prepare my 1:1s.", "Why is team health declining?"]:
             st.caption(prompt)
@@ -747,10 +747,10 @@ def weekly_summary_page() -> None:
     top_bar("Weekly Summary", "AI-generated highlights, concerns, and recommendations.")
     weekly_summary_card()
     c1, c2, c3, c4 = st.columns(4)
-    c1.button("Regenerate", use_container_width=True)
-    c2.button("Copy", use_container_width=True)
-    c3.button("Export", use_container_width=True)
-    c4.button("Send to Slack", use_container_width=True)
+    c1.button("Regenerate", width="stretch")
+    c2.button("Copy", width="stretch")
+    c3.button("Export", width="stretch")
+    c4.button("Send to Slack", width="stretch")
  
  
 def analytics_page() -> None:
@@ -778,20 +778,20 @@ def trend_chart() -> None:
     values = [72, 73, 71, 69, 70, 74, 76, 78, 77, 75, 76, 78, 79, 78]
     fig = px.line(x=days, y=values, markers=True, labels={"x": "Date", "y": "Score"})
     fig.update_layout(height=300, margin=dict(l=8, r=8, t=10, b=8), showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
  
  
 def risk_distribution_chart() -> None:
     fig = px.pie(names=["Low", "Medium", "High"], values=[2, 1, 2], hole=.58, color=["Low", "Medium", "High"], color_discrete_map={"Low": "#16a34a", "Medium": "#f59e0b", "High": "#dc2626"})
     fig.update_layout(height=300, margin=dict(l=8, r=8, t=10, b=8))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
  
  
 def blocker_chart() -> None:
     data = pd.DataFrame({"Week": ["W1", "W2", "W3", "W4"], "Low": [2, 1, 3, 1], "Medium": [3, 4, 2, 3], "High": [1, 2, 2, 3], "Critical": [0, 1, 0, 1]})
     fig = px.bar(data, x="Week", y=["Low", "Medium", "High", "Critical"], barmode="stack")
     fig.update_layout(height=300, margin=dict(l=8, r=8, t=10, b=8), legend_title_text="")
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
  
  
 def heatmap_chart() -> None:
@@ -800,7 +800,7 @@ def heatmap_chart() -> None:
     z = [[1, 1, 1, 1, 1], [1, 0, 1, 1, 0], [1, 1, 1, 1, 1], [0, 1, 0, 1, 0], [1, 1, 1, 1, 1]]
     fig = go.Figure(data=go.Heatmap(z=z, x=cols, y=rows, colorscale=[[0, "#fee2e2"], [1, "#dcfce7"]], showscale=False))
     fig.update_layout(height=300, margin=dict(l=8, r=8, t=10, b=8))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
  
  
 def radar_chart() -> None:
@@ -808,7 +808,7 @@ def radar_chart() -> None:
     fig = go.Figure()
     fig.add_trace(go.Scatterpolar(r=[3.6, 4.1, 2.5, 4.0, 4.8], theta=categories, fill="toself", name="Team"))
     fig.update_layout(height=340, margin=dict(l=8, r=8, t=10, b=8), polar=dict(radialaxis=dict(visible=True, range=[0, 5])))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
  
  
 def alerts_page() -> None:
@@ -850,7 +850,7 @@ def feedback_composer(employee: str | None = None) -> None:
         visibility = st.radio("Visibility", ["Employee only", "Employee and manager"], horizontal=True)
         message = st.text_area("Message", max_chars=1000, placeholder="Write specific, actionable feedback...")
         st.caption(f"{len(message)} / 1000 characters")
-        sent = st.form_submit_button(f"Send feedback to {target}", type="primary", use_container_width=True)
+        sent = st.form_submit_button(f"Send feedback to {target}", type="primary", width="stretch")
     if sent:
         if len(message.strip()) < 10:
             st.error("Feedback must be at least 10 characters.")
@@ -860,12 +860,12 @@ def feedback_composer(employee: str | None = None) -> None:
  
 def feedback_history() -> None:
     history = FEEDBACK[["Date", "From", "Type", "Message"]].rename(columns={"From": "Sender"})
-    st.dataframe(history, hide_index=True, use_container_width=True)
+    st.dataframe(history, hide_index=True, width="stretch")
  
  
 def mentees_page() -> None:
     top_bar("Mentees", "Assigned mentees with current risk and update status.")
-    st.dataframe(EMPLOYEES[EMPLOYEES["Mentor"] == "Ravi Mehta"], hide_index=True, use_container_width=True)
+    st.dataframe(EMPLOYEES[EMPLOYEES["Mentor"] == "Ravi Mehta"], hide_index=True, width="stretch")
  
  
 def feedback_composer_page() -> None:

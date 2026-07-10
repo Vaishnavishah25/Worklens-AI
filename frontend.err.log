@@ -1,0 +1,62 @@
+2026-07-10 07:14:25.925 Uvicorn server started on 127.0.0.1:8501
+2026-07-10 07:49:42.801 The widget with key "email_input" was created with a default value but also had its value set via the Session State API.
+Stack (most recent call last):
+  File "C:\Users\VaishnaviShah\AppData\Local\Python\pythoncore-3.14-64\Lib\threading.py", line 1044, in _bootstrap
+    self._bootstrap_inner()
+  File "C:\Users\VaishnaviShah\AppData\Local\Python\pythoncore-3.14-64\Lib\threading.py", line 1082, in _bootstrap_inner
+    self._context.run(self.run)
+  File "C:\Users\VaishnaviShah\AppData\Local\Python\pythoncore-3.14-64\Lib\threading.py", line 1024, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 419, in _run_script_thread
+    self._run_script(request.rerun_data)
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 814, in _run_script
+    ) = exec_func_with_error_handling(code_to_exec, ctx)
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 787, in code_to_exec
+    _mpa_v1(self._main_script_path)
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\runtime\scriptrunner\script_runner.py", line 171, in _mpa_v1
+    page.run()
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\navigation\page.py", line 490, in run
+    exec(code, module.__dict__)  # noqa: S102
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\Frontend\app.py", line 207, in <module>
+    main()
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\Frontend\app.py", line 199, in main
+    show_login()
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\Frontend\auth\login.py", line 122, in show_login
+    "Password",
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\runtime\metrics_util.py", line 698, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\elements\widgets\text_widgets.py", line 320, in text_input
+    return self._text_input(
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\elements\widgets\text_widgets.py", line 363, in _text_input
+    check_widget_policies(
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\elements\lib\policies.py", line 187, in check_widget_policies
+    check_session_state_rules(
+  File "C:\Users\VaishnaviShah\VSCode\WorkLens AI\.venv\Lib\site-packages\streamlit\elements\lib\policies.py", line 92, in check_session_state_rules
+    _LOGGER.warning(
+2026-07-10 08:09:33.441 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.
+2026-07-10 08:14:17.279 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.
+2026-07-10 08:15:14.063 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.
+2026-07-10 08:15:48.639 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.
+2026-07-10 08:16:35.034 Please replace `use_container_width` with `width`.
+
+`use_container_width` will be removed after 2025-12-31.
+
+For `use_container_width=True`, use `width='stretch'`. For `use_container_width=False`, use `width='content'`.

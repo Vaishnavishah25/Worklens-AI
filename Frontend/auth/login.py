@@ -28,6 +28,17 @@ DEMO_ACCOUNTS = {
 }
 
 
+def _validate_role(role: str) -> tuple[bool, str, str]:
+    normalized_role = role.strip()
+    if not normalized_role:
+        return False, "Please enter your role.", normalized_role
+    if len(normalized_role) > 30:
+        return False, "Role must be 30 characters or fewer.", normalized_role
+    if not all(character.isalpha() or character.isspace() for character in normalized_role):
+        return False, "Role can contain only alphabetic characters and spaces.", normalized_role
+    return True, "", normalized_role
+
+
 def _feature_card(title: str, body: str) -> None:
     st.markdown(
         f"""
@@ -73,7 +84,7 @@ def render_demo_accounts() -> dict | None:
 
     for index, (role, account) in enumerate(DEMO_ACCOUNTS.items()):
         with cols[index]:
-            if st.button(account["icon"], use_container_width=True, key=f"demo_{role}"):
+            if st.button(account["icon"], width="stretch", key=f"demo_{role}"):
                 selected = account
             st.caption(account["email"])
 
@@ -90,62 +101,151 @@ def show_login() -> None:
         render_hero()
 
     with right:
-        st.markdown(
-            """
-            <div class="wl-login-welcome">
-                <div class="wl-login-kicker">Secure workspace</div>
-                <div class="wl-login-card-title">Welcome Back</div>
-                <div class="wl-login-card-copy">Sign in to continue using WorkLens AI.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        sign_in_tab, sign_up_tab = st.tabs(["Sign in", "Sign up"])
 
-        selected = render_demo_accounts()
-        if selected:
-            st.session_state.login_email = selected["email"]
-            st.session_state.login_password = selected["password"]
-            st.session_state.email_input = selected["email"]
-            st.session_state.password_input = selected["password"]
-            st.rerun()
-
-        with st.form("login_form", clear_on_submit=False):
-            email = st.text_input(
-                "Email",
-                value=st.session_state.login_email,
-                placeholder="manager@worklens.ai",
-                key="email_input",
-            )
-            password = st.text_input(
-                "Password",
-                value=st.session_state.login_password,
-                type="password",
-                key="password_input",
-            )
-            submitted = st.form_submit_button(
-                "Sign in to WorkLens",
-                use_container_width=True,
-                type="primary",
+        with sign_in_tab:
+            st.markdown(
+                """
+                <div class="wl-login-welcome">
+                    <div class="wl-login-kicker">Secure workspace</div>
+                    <div class="wl-login-card-title">Welcome Back</div>
+                    <div class="wl-login-card-copy">Sign in to continue using WorkLens AI.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
 
-        if submitted:
-            if not email.strip():
-                st.error("Please enter your email.")
-                st.stop()
-            if not password.strip():
-                st.error("Please enter your password.")
-                st.stop()
-
-            with st.spinner("Signing you in..."):
-                time.sleep(0.3)
-                success, message = AuthService.login(email=email.strip(), password=password)
-
-            if success:
-                st.success("Login successful. Redirecting...")
-                time.sleep(0.3)
+            selected = render_demo_accounts()
+            if selected:
+                st.session_state.login_email = selected["email"]
+                st.session_state.login_password = selected["password"]
+                st.session_state.email_input = selected["email"]
+                st.session_state.password_input = selected["password"]
                 st.rerun()
-            else:
-                st.error(message)
+
+            with st.form("login_form", clear_on_submit=False):
+                email = st.text_input(
+                    "Email",
+                    value=st.session_state.login_email,
+                    placeholder="manager@worklens.ai",
+                    key="email_input",
+                )
+                password = st.text_input(
+                    "Password",
+                    value=st.session_state.login_password,
+                    type="password",
+                    key="password_input",
+                )
+                submitted = st.form_submit_button(
+                    "Sign in to WorkLens",
+                    width="stretch",
+                    type="primary",
+                )
+
+            if submitted:
+                if not email.strip():
+                    st.error("Please enter your email.")
+                    st.stop()
+                if not password.strip():
+                    st.error("Please enter your password.")
+                    st.stop()
+
+                with st.spinner("Signing you in..."):
+                    time.sleep(0.3)
+                    success, message = AuthService.login(email=email.strip(), password=password)
+
+                if success:
+                    st.success("Login successful. Redirecting...")
+                    time.sleep(0.3)
+                    st.rerun()
+                else:
+                    st.error(message)
+
+        with sign_up_tab:
+            st.markdown(
+                """
+                <div class="wl-login-welcome">
+                    <div class="wl-login-kicker">New workspace access</div>
+                    <div class="wl-login-card-title">Create Account</div>
+                    <div class="wl-login-card-copy">Join WorkLens AI with a secure profile.</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            with st.form("signup_form", clear_on_submit=False):
+                name = st.text_input("Full name", placeholder="Aarav Sharma", key="signup_name")
+                signup_email = st.text_input("Work email", placeholder="aarav@company.com", key="signup_email")
+                role = st.text_input(
+                    "Role",
+                    placeholder="Type employee, mentor, or manager",
+                    max_chars=30,
+                    key="signup_role",
+                )
+                manager_id_text = st.text_input(
+                    "Manager or mentor ID",
+                    placeholder="Optional",
+                    key="signup_manager_id",
+                )
+                signup_password = st.text_input("Password", type="password", key="signup_password")
+                confirm_password = st.text_input("Confirm password", type="password", key="signup_confirm_password")
+                signup_submitted = st.form_submit_button(
+                    "Create account",
+                    width="stretch",
+                    type="primary",
+                )
+
+            if signup_submitted:
+                manager_id = None
+                if manager_id_text.strip():
+                    try:
+                        manager_id = int(manager_id_text)
+                    except ValueError:
+                        st.error("Manager or mentor ID must be a number.")
+                        st.stop()
+
+                if not name.strip():
+                    st.error("Please enter your full name.")
+                    st.stop()
+                if not signup_email.strip():
+                    st.error("Please enter your work email.")
+                    st.stop()
+                is_valid_role, role_error, normalized_role = _validate_role(role)
+                if not is_valid_role:
+                    st.error(role_error)
+                    st.stop()
+                if len(signup_password) < 8:
+                    st.error("Password must be at least 8 characters.")
+                    st.stop()
+                if signup_password != confirm_password:
+                    st.error("Passwords do not match.")
+                    st.stop()
+
+                with st.spinner("Creating your account..."):
+                    time.sleep(0.3)
+                    success, message = AuthService.signup(
+                        name=name,
+                        email=signup_email,
+                        password=signup_password,
+                        role=normalized_role,
+                        manager_id=manager_id,
+                    )
+
+                if success:
+                    for key in (
+                        "signup_name",
+                        "signup_email",
+                        "signup_role",
+                        "signup_manager_id",
+                        "signup_password",
+                        "signup_confirm_password",
+                    ):
+                        st.session_state.pop(key, None)
+                    st.success("Account created. Redirecting...")
+                    time.sleep(0.3)
+                    st.rerun()
+                else:
+                    st.error(message)
 
         st.markdown(
             """

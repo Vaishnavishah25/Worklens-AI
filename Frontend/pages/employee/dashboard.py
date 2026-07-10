@@ -68,7 +68,7 @@ def show_employee_dashboard() -> None:
     left, right = st.columns([1.25, 1], gap="large")
     with left:
         st.subheader("Tasks")
-        st.dataframe(_task_frame(tasks), hide_index=True, use_container_width=True)
+        st.dataframe(_task_frame(tasks), hide_index=True, width="stretch")
     with right:
         card("Risk transparency", "\n".join(f"- {factor}" for factor in risk.get("factors", [])), badge_html=badge(risk["label"], risk["label"].lower()))
         st.subheader("Recent feedback")
@@ -88,7 +88,7 @@ def show_daily_update() -> None:
         severity = st.segmented_control("Severity", ["None", "Low", "Medium", "High", "Critical"], default="None")
         next_steps = st.text_area("Next Steps", placeholder="What are you planning to do next?", height=100)
         confidence = st.slider("Confidence", min_value=1, max_value=5, value=4)
-        submitted = st.form_submit_button("Submit update", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Submit update", type="primary", width="stretch")
 
     if submitted:
         if not work_done.strip() or not next_steps.strip():
@@ -134,7 +134,7 @@ def show_my_tasks() -> None:
         if rows.empty:
             empty_state(f"No {status.lower()} tasks", "This section will update when matching tasks are available.")
         else:
-            st.dataframe(rows, hide_index=True, use_container_width=True)
+            st.dataframe(rows, hide_index=True, width="stretch")
 
 
 def show_progress_timeline() -> None:
@@ -189,6 +189,6 @@ def show_my_risk() -> None:
             fig = px.line(frame, x="created_at", y="confidence", markers=True)
             fig.update_layout(height=300, showlegend=False)
             style_chart(fig)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
         else:
             empty_state("No trend yet", "Submit updates to build a confidence trend.")

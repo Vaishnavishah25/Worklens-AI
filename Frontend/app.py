@@ -153,7 +153,7 @@ def render_sidebar(role: str) -> None:
     st.sidebar.markdown(f"**{user.get('name', 'User')}**")
     st.sidebar.caption(user.get("designation", "Team Member"))
 
-    if st.sidebar.button("Logout", use_container_width=True, key="logout_btn"):
+    if st.sidebar.button("Logout", width="stretch", key="logout_btn"):
         SessionManager.logout()
         st.rerun()
 

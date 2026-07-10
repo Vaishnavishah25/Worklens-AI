@@ -97,9 +97,9 @@ def show_manager_dashboard() -> None:
     left, right = st.columns([1.45, 1], gap="large")
     with left:
         st.subheader("Team risk overview")
-        st.dataframe(_team_frame(data["employees"]), hide_index=True, use_container_width=True)
+        st.dataframe(_team_frame(data["employees"]), hide_index=True, width="stretch")
         st.subheader("Active blockers")
-        st.dataframe(_blocker_frame(data["blockers"]), hide_index=True, use_container_width=True)
+        st.dataframe(_blocker_frame(data["blockers"]), hide_index=True, width="stretch")
     with right:
         _weekly_summary_card()
         card("AI WorkLens Assistant", "Ask the assistant which blockers or employees need immediate intervention.", badge_html=badge("AI", "success"))
@@ -109,7 +109,7 @@ def show_team_risk_page() -> None:
     section_header("Team Risk", "Interactive risk table with filters and row-level actions.")
     data = _dashboard()
     if data:
-        st.dataframe(_team_frame(data["employees"]), hide_index=True, use_container_width=True)
+        st.dataframe(_team_frame(data["employees"]), hide_index=True, width="stretch")
         if not data["employees"]:
             empty_state("No team data", "Team risk signals will appear after updates are available.")
 
@@ -118,7 +118,7 @@ def show_blockers_page() -> None:
     section_header("Active Blockers", "Track severity, age, status, ownership, and escalation.")
     data = _dashboard()
     if data:
-        st.dataframe(_blocker_frame(data["blockers"]), hide_index=True, use_container_width=True)
+        st.dataframe(_blocker_frame(data["blockers"]), hide_index=True, width="stretch")
         if not data["blockers"]:
             empty_state("No active blockers", "New blockers will appear here when reported.")
 
@@ -161,17 +161,17 @@ def show_analytics_page() -> None:
         fig = px.line(x=team["labels"], y=team["health"], markers=True, labels={"x": "Day", "y": "Health"})
         fig.update_layout(height=300, showlegend=False)
         style_chart(fig)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     with c2:
         st.subheader("Risk distribution")
         fig = px.pie(names=list(team["risk_distribution"].keys()), values=list(team["risk_distribution"].values()), hole=.58)
         fig.update_layout(height=300)
         style_chart(fig)
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
     st.subheader("Blockers per week")
     fig = px.bar(pd.DataFrame({"Week": blockers["labels"], "Blockers": blockers["counts"]}), x="Week", y="Blockers")
     style_chart(fig)
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def show_alerts_page() -> None:

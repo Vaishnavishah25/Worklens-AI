@@ -5,7 +5,7 @@ import streamlit as st
 
 from services.api_client import APIClientError
 from services.mentor_service import MentorService
-from theme.theme import badge, card, metric_card, render_timeline, section_header
+from theme.theme import badge, card, empty_state, metric_card, render_timeline, section_header
 from utils.session import SessionManager
 
 
@@ -65,7 +65,7 @@ def show_mentor_dashboard() -> None:
     st.subheader("Assigned mentees")
     st.dataframe(_mentee_frame(mentees), hide_index=True, use_container_width=True)
     if not mentees:
-        st.info("No assigned mentees found.")
+        empty_state("No assigned mentees", "Assigned mentees will appear here once available.")
 
 
 def feedback_composer(employee: dict | None = None) -> None:
@@ -76,7 +76,7 @@ def feedback_composer(employee: dict | None = None) -> None:
         _handle_error(exc)
         return
     if not mentees:
-        st.info("No assigned mentees found.")
+        empty_state("No assigned mentees", "Assigned mentees will appear here once available.")
         return
     selected = employee or st.selectbox("Mentee", mentees, format_func=lambda row: row["name"])
     with st.form(f"feedback_form_{selected['id']}"):
@@ -100,7 +100,7 @@ def feedback_history(employee_id: int | None = None) -> None:
     try:
         mentees = _mentees()
         if not mentees:
-            st.info("No assigned mentees found.")
+            empty_state("No assigned mentees", "Assigned mentees will appear here once available.")
             return
         selected_id = employee_id or mentees[0]["id"]
         rows = MentorService.feedback(selected_id)
@@ -118,7 +118,7 @@ def show_mentees_page() -> None:
         _handle_error(exc)
         return
     if not mentees:
-        st.info("No assigned mentees found.")
+        empty_state("No assigned mentees", "Assigned mentees will appear here once available.")
         return
     selected = st.selectbox("Select mentee", mentees, format_func=lambda row: row["name"])
     risk = MentorService.risk(selected["id"])
@@ -139,7 +139,7 @@ def show_mentees_page() -> None:
     if items:
         render_timeline(items)
     else:
-        st.info("No updates for this mentee yet.")
+        empty_state("No updates yet", "Updates for this mentee will appear here.")
 
 
 def show_feedback_composer_page() -> None:

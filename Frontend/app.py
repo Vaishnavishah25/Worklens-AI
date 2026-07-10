@@ -117,7 +117,10 @@ def render_logo_header() -> None:
 
 
 def render_role_badge(role: str) -> None:
-    st.sidebar.info(ROLE_LABELS[role])
+    st.sidebar.markdown(
+        f'<span class="wl-badge wl-badge-primary">{ROLE_LABELS[role]}</span>',
+        unsafe_allow_html=True,
+    )
 
 
 def render_sidebar(role: str) -> None:
@@ -128,9 +131,9 @@ def render_sidebar(role: str) -> None:
     if LOGO_PATH.exists():
         st.sidebar.image(str(LOGO_PATH), width=150)
     else:
-        st.sidebar.title("WorkLens AI")
+        st.sidebar.markdown("### WorkLens AI")
 
-    st.sidebar.caption("Engineering Org")
+    st.sidebar.caption("Engineering visibility")
     render_role_badge(role)
     st.sidebar.divider()
     st.sidebar.caption("Navigation")
@@ -147,7 +150,8 @@ def render_sidebar(role: str) -> None:
         st.rerun()
 
     st.sidebar.divider()
-    st.sidebar.caption(f"{user.get('name', 'User')} - {user.get('designation', 'Team Member')}")
+    st.sidebar.markdown(f"**{user.get('name', 'User')}**")
+    st.sidebar.caption(user.get("designation", "Team Member"))
 
     if st.sidebar.button("Logout", use_container_width=True, key="logout_btn"):
         SessionManager.logout()

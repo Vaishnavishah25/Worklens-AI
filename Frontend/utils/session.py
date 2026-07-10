@@ -32,7 +32,8 @@ class SessionManager:
         # Authentication
         "authenticated": False,
         "user": None,
-        "role": None,
+        "user_role": None,
+
 
         # Tokens (future backend)
         "access_token": None,
@@ -84,7 +85,7 @@ class SessionManager:
 
         st.session_state.user = user
 
-        st.session_state.role = user["role"]
+        st.session_state.user_role = user["role"]
 
         st.session_state.access_token = access_token
 
@@ -122,7 +123,7 @@ class SessionManager:
     @classmethod
     def get_role(cls):
 
-        return st.session_state.role
+        return st.session_state.user_role
 
     # -------------------------------------------------
 

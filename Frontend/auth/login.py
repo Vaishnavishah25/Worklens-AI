@@ -9,9 +9,6 @@ from theme.theme import footer_note
 import os
 SHOW_DEMO = os.getenv("DEMO_MODE","false").lower() == True
 
-if SHOW_DEMO:
-    selected = render_demo_accounts()
-
 DEMO_ACCOUNTS = {
     "Manager": {
         "email": "manager@worklens.ai",
@@ -32,21 +29,34 @@ DEMO_ACCOUNTS = {
 
 
 def _feature_card(title: str, body: str) -> None:
-    with st.container(border=True):
-        st.markdown(f"**{title}**")
-        st.caption(body)
+    st.markdown(
+        f"""
+        <div class="wl-login-feature">
+            <div class="wl-login-feature-title">{title}</div>
+            <div class="wl-login-feature-body">{body}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_hero() -> None:
-    with st.container(border=True):
-        st.markdown("## WorkLens AI")
-        st.markdown("### Engineering Visibility Powered by AI")
-        st.caption(
-            "Help engineering teams stay aligned with daily updates, blocker detection, "
-            "mentor guidance, and delivery insights."
-        )
+    st.markdown(
+        """
+        <div class="wl-login-hero-card">
+            <div class="wl-login-kicker">Enterprise engineering intelligence</div>
+            <div class="wl-login-hero-title">WorkLens AI</div>
+            <div class="wl-login-hero-subtitle">Engineering Visibility Powered by AI</div>
+            <div class="wl-login-hero-copy">
+                Help engineering teams stay aligned with daily updates, blocker detection,
+                mentor guidance, and delivery insights.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("### Why WorkLens?")
+    st.markdown('<div class="wl-login-section-title">Why WorkLens?</div>', unsafe_allow_html=True)
     c1, c2 = st.columns(2)
     with c1:
         _feature_card("Daily Updates", "Track engineering work without interrupting developers.")
@@ -80,14 +90,23 @@ def show_login() -> None:
         render_hero()
 
     with right:
-        with st.container(border=True):
-            st.markdown("## Welcome Back")
-            st.caption("Sign in to continue using WorkLens AI.")
+        st.markdown(
+            """
+            <div class="wl-login-welcome">
+                <div class="wl-login-kicker">Secure workspace</div>
+                <div class="wl-login-card-title">Welcome Back</div>
+                <div class="wl-login-card-copy">Sign in to continue using WorkLens AI.</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         selected = render_demo_accounts()
         if selected:
             st.session_state.login_email = selected["email"]
             st.session_state.login_password = selected["password"]
+            st.session_state.email_input = selected["email"]
+            st.session_state.password_input = selected["password"]
             st.rerun()
 
         with st.form("login_form", clear_on_submit=False):
@@ -128,8 +147,14 @@ def show_login() -> None:
             else:
                 st.error(message)
 
-        with st.container(border=True):
-            st.markdown("**Enterprise Ready**")
-            st.caption("JWT Authentication - FastAPI - PostgreSQL")
+        st.markdown(
+            """
+            <div class="wl-login-enterprise">
+                <div class="wl-login-feature-title">Enterprise Ready</div>
+                <div class="wl-login-feature-body">JWT Authentication - FastAPI - PostgreSQL</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
         footer_note("Version 1.0.0", "Built for Engineering Teams", divider_above=True)

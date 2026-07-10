@@ -8,7 +8,7 @@ import streamlit as st
 
 from services.api_client import APIClientError
 from services.employee_service import EmployeeService
-from theme.theme import badge, card, hero_card, metric_card, render_timeline, section_header
+from theme.theme import badge, card, empty_state, hero_card, metric_card, render_timeline, section_header, style_chart
 from utils.session import SessionManager
 
 
@@ -74,6 +74,8 @@ def show_employee_dashboard() -> None:
         st.subheader("Recent feedback")
         for item in feedback[:3]:
             card(item["from"], item["message"], eyebrow=item["date"], badge_html=badge(item["type"], "info"))
+        if not feedback:
+            empty_state("No feedback yet", "Feedback from mentors and managers will appear here.")
 
 
 def show_daily_update() -> None:
@@ -130,7 +132,7 @@ def show_my_tasks() -> None:
         st.subheader(status)
         rows = tasks[tasks["Status"] == status]
         if rows.empty:
-            st.info(f"No {status.lower()} tasks.")
+            empty_state(f"No {status.lower()} tasks", "This section will update when matching tasks are available.")
         else:
             st.dataframe(rows, hide_index=True, use_container_width=True)
 
@@ -149,7 +151,7 @@ def show_progress_timeline() -> None:
     if items:
         render_timeline(items)
     else:
-        st.info("No updates yet.")
+        empty_state("No updates yet", "Submit daily updates to build your progress timeline.")
 
 
 def show_feedback_inbox() -> None:
@@ -162,7 +164,7 @@ def show_feedback_inbox() -> None:
     for item in feedback:
         card(item["from"], item["message"], eyebrow=item["date"], badge_html=badge(item["type"], "info"))
     if not feedback:
-        st.info("No feedback yet.")
+        empty_state("No feedback yet", "Feedback from mentors and managers will appear here.")
 
 
 def show_my_risk() -> None:
@@ -185,7 +187,8 @@ def show_my_risk() -> None:
         if updates:
             frame = pd.DataFrame(updates)
             fig = px.line(frame, x="created_at", y="confidence", markers=True)
-            fig.update_layout(height=300, margin=dict(l=8, r=8, t=10, b=8), showlegend=False)
+            fig.update_layout(height=300, showlegend=False)
+            style_chart(fig)
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("Submit updates to build a confidence trend.")
+            empty_state("No trend yet", "Submit updates to build a confidence trend.")

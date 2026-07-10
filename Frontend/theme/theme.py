@@ -6,11 +6,12 @@ import streamlit as st
 
 
 COLORS = {
-    "primary": "#6366f1",
-    "success": "#10b981",
-    "warning": "#f59e0b",
-    "danger": "#ef4444",
-    "info": "#06b6d4",
+    "primary": "#2563eb",
+    "success": "#059669",
+    "warning": "#d97706",
+    "danger": "#dc2626",
+    "info": "#0891b2",
+    "muted": "#64748b",
 }
 
 SPACING = {
@@ -35,11 +36,19 @@ def load_theme() -> None:
 
 def badge(text: str, level: str = "info", icon: str | None = None) -> str:
     label = f"{icon} {text}" if icon else text
-    return str(label)
+    level = (level or "info").lower()
+    return f'<span class="wl-badge wl-badge-{level}">{label}</span>'
 
 
 def status_indicator(status: str, text: str = "", size: str = "sm") -> str:
-    return text or status.title()
+    label = text or status.title()
+    status_class = (status or "info").lower().replace(" ", "-")
+    return f'<span class="wl-status wl-status-{status_class}">{label}</span>'
+
+
+def _render_badge(badge_html: str | None) -> None:
+    if badge_html:
+        st.markdown(badge_html, unsafe_allow_html=True)
 
 
 def hero_card(
@@ -50,15 +59,14 @@ def hero_card(
 ) -> None:
     with st.container(border=True):
         if eyebrow:
-            st.caption(eyebrow)
+            st.markdown(f'<div class="wl-eyebrow">{eyebrow}</div>', unsafe_allow_html=True)
         left, right = st.columns([1, 0.25])
         with left:
             st.subheader(title)
             if subtitle:
                 st.caption(subtitle)
         with right:
-            if badge_html:
-                st.info(badge_html)
+            _render_badge(badge_html)
 
 
 def standard_card(
@@ -71,13 +79,13 @@ def standard_card(
 ):
     with st.container(border=True):
         if eyebrow:
-            st.caption(eyebrow)
+            st.markdown(f'<div class="wl-eyebrow">{eyebrow}</div>', unsafe_allow_html=True)
         if badge_html:
             left, right = st.columns([1, 0.35])
             with left:
                 st.markdown(f"**{title}**")
             with right:
-                st.caption(badge_html)
+                _render_badge(badge_html)
         else:
             st.markdown(f"**{title}**")
         if body:
@@ -100,12 +108,12 @@ def card(
 
 
 def section_header(title: str, subtitle: str = "", action_html: str | None = None) -> None:
-    st.title(title)
+    st.markdown(f'<div class="wl-page-title">{title}</div>', unsafe_allow_html=True)
     if subtitle:
-        st.caption(subtitle)
+        st.markdown(f'<div class="wl-page-subtitle">{subtitle}</div>', unsafe_allow_html=True)
     if action_html:
-        st.info(action_html)
-    st.divider()
+        st.markdown(action_html, unsafe_allow_html=True)
+    st.markdown('<div class="wl-section-rule"></div>', unsafe_allow_html=True)
 
 
 def metric_card(
@@ -120,7 +128,8 @@ def metric_card(
 
 
 def spacer(size: str = "md") -> None:
-    st.write("")
+    sizes = {"xs": "0.25rem", "sm": "0.5rem", "md": "0.85rem", "lg": "1.25rem", "xl": "1.75rem"}
+    st.markdown(f'<div style="height:{sizes.get(size, "0.85rem")}"></div>', unsafe_allow_html=True)
 
 
 def divider(size: str = "lg") -> None:
@@ -145,8 +154,8 @@ def four_columns(gap: str = "lg") -> tuple:
 def empty_state(title: str, description: str, icon: str = "") -> None:
     with st.container(border=True):
         if icon:
-            st.caption(icon)
-        st.subheader(title)
+            st.markdown(f'<div class="wl-empty-icon">{icon}</div>', unsafe_allow_html=True)
+        st.markdown(f"**{title}**")
         st.caption(description)
 
 
@@ -174,9 +183,12 @@ def timeline_item(label: str, content: str, status: str = "completed") -> dict:
 def render_timeline(items: list[dict]) -> None:
     for item in items:
         with st.container(border=True):
+            st.markdown(
+                status_indicator(item.get("status", "completed"), item.get("status", "completed").replace("-", " ").title()),
+                unsafe_allow_html=True,
+            )
             st.markdown(f"**{item.get('label', '')}**")
             st.caption(item.get("content", ""))
-            st.caption(item.get("status", "completed").replace("-", " ").title())
 
 
 def footer_note(*lines: str, divider_above: bool = True) -> None:
@@ -191,3 +203,18 @@ def render_grid(items: list[str], columns: int = 4) -> None:
     for index, item in enumerate(items):
         with cols[index % len(cols)]:
             st.write(item)
+
+
+def style_chart(fig):
+    fig.update_layout(
+        template="plotly_white",
+        font=dict(family="Inter, Arial, sans-serif", color="#0f172a"),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=18, r=18, t=18, b=18),
+        hovermode="closest",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+    fig.update_xaxes(showgrid=False, linecolor="#e2e8f0", tickfont=dict(color="#64748b"))
+    fig.update_yaxes(gridcolor="#e2e8f0", zerolinecolor="#e2e8f0", tickfont=dict(color="#64748b"))
+    return fig

@@ -3,12 +3,15 @@
 # api/deps.py
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 from database.session import get_db
 from models.user import User
 from sqlalchemy.future import select
-from core.config import settings
+from auth.jwt import decode_access_token
+from auth.middleware import get_authenticated_user, RoleChecker
+
+role_required = RoleChecker
+get_current_user = get_authenticated_user
 
 security = HTTPBearer()
 
@@ -24,14 +27,13 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    try:
-        # Utilize the product Pydantic config environment variable for the secret key
-        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
-        user_email: str = payload.get("sub")
-        if user_email is None:
-            raise HTTPException(status_code=401, detail="Invalid token payloads")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
+    payload = decode_access_token(token)
+    if not payload:
+        raise credentials_exception
+    
+    user_email: str = payload.get("sub")
+    if user_email is None:
+        raise HTTPException(status_code=401, detail="Invalid token payloads")
         
     result = await db.execute(select(User).where(User.email == user_email))
     user = result.scalar_one_or_none()

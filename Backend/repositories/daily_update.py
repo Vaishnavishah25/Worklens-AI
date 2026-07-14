@@ -2,12 +2,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from models.daily_update import DailyUpdate
+from typing import List, Optional
 
 class UpdateRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, user_id: int, work_done: str, next_steps: str, confidence_score: int) -> DailyUpdate:
+    async def create_update(self, user_id: int, work_done: str, next_steps: str, confidence_score: int) -> DailyUpdate:
         db_update = DailyUpdate(
             employee_id=user_id,          
             work_done=work_done,
@@ -18,8 +19,8 @@ class UpdateRepository:
         await self.db.flush()  
         return db_update
 
-    async def get_latest_updates(self, limit: int = 10):
-        result = await self.db.execute(
-            select(DailyUpdate).order_by(DailyUpdate.id.desc()).limit(limit)
-        )
-        return result.scalars().all()
+    async def get_latest_updates(self, employee_id: int) -> Optional[DailyUpdate]:
+        """Queries the database for the most recent daily updates of a specific employee, limited to a specified number of entries."""
+        query = select(DailyUpdate).where(DailyUpdate.employee_id == employee_id).order_by(DailyUpdate.created_at.desc()).limit(1)
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()

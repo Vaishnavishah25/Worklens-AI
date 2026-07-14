@@ -17,7 +17,7 @@ class UpdateService:
         label = "HIGH" if score > 0.65 else "MEDIUM" if score > 0.35 else "LOW"
 
         # Explicit keywords assignment
-        db_update = await self.repo.create(
+        db_update = await self.repo.create_update(
             user_id=user_id,                           
             work_done=payload.work_done,                 
             next_steps=payload.next_steps,

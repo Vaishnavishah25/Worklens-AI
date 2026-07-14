@@ -1,16 +1,15 @@
 # schemas/daily_update.py
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
 from uuid import UUID
 
 class UpdateCreate(BaseModel):
-    employee_name: str  # Kept simple for rapid form submission mapping
-    work_done: str
+    work_done: str = Field(..., min_length=10)
+    next_steps: str = Field(..., min_length=10)
+    confidence: int = Field(..., ge=1, le=10)
     blockers: Optional[str] = None
     severity: Optional[str] = None
-    next_steps: str
-    confidence: int
 
 class UpdateResponse(BaseModel):
     id: int

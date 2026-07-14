@@ -46,3 +46,8 @@ class RiskScore(Base):
         "User",
         back_populates="risk_scores"
     )
+
+    team_id: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True
+    )

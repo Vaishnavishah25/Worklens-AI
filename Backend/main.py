@@ -5,8 +5,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
-from api.v1 import tasks, blockers, updates, auth, dashboard, users
+from api.v1 import tasks, blockers, updates, auth, dashboard, users, feedback
 from api.v1.auth import router as auth_router
+from api.v1.analytics import router as analytics_router
+from api.v1.alerts import router as alerts_router
 
 from database.session import engine, get_db
 from database.base import Base
@@ -14,6 +16,8 @@ import models
 
 from schemas.daily_update import UpdateCreate
 from services.update_service import UpdateService
+from schemas.feedback import FeedbackCreate, FeedbackResponse
+from api.v1.tasks import router as tasks_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,7 +26,7 @@ async def lifespan(app: FastAPI):
         # 1. Auto-create tables if they don't exist
         await conn.run_sync(Base.metadata.create_all)
         
-        # 2. ⛑️ Seed default user with columns matching Member 1's exact model names ('name')
+        # 2. Seed default user with columns matching Member 1's exact model names ('name')
         await conn.execute(text("""
             INSERT INTO users (id, name, email, password, role)
             VALUES (1, 'Default User', 'test@worklens.ai', 'no_pass', 'employee')
@@ -47,6 +51,10 @@ app.include_router(blockers.router, prefix="/v1")
 app.include_router(dashboard.router, prefix="/v1")
 app.include_router(users.router, prefix="/v1")
 app.include_router(auth_router, prefix="/v1")
+app.include_router(feedback.router, prefix="/v1")
+app.include_router(tasks_router, prefix="/v1")
+app.include_router(analytics_router, prefix="/v1")
+app.include_router(alerts_router, prefix="/v1")
 
 # Raw root endpoints
 

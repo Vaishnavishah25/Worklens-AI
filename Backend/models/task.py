@@ -1,5 +1,5 @@
 # models/task.py
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from sqlalchemy import Integer, String, Text, Date, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database.base import Base
@@ -50,14 +50,14 @@ class Task(Base):
     
     created_at: Mapped[datetime] = mapped_column(
         DateTime, 
-        default=datetime.utcnow, 
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), 
         nullable=False
     )
     
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, 
-        default=datetime.utcnow, 
-        onupdate=datetime.utcnow, 
+        default=lambda: datetime.now(timezone.utc).replace(tzinfo=None), 
+        onupdate=lambda: datetime.now(timezone.utc).replace(tzinfo=None), 
         nullable=False
     )
 

@@ -67,3 +67,15 @@ class User(Base):
     back_populates="user",
     cascade="all, delete-orphan"
 )
+    
+    feedback_given = relationship(
+        "Feedback",
+        foreign_keys="[Feedback.mentor_id]",
+        back_populates="mentor"
+    )
+    
+    feedback_received = relationship(
+        "Feedback",
+        foreign_keys="[Feedback.mentee_id]",
+        back_populates="mentee"
+    )

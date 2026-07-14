@@ -5,7 +5,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from core.config import settings  # Accesses your central secret key and expiration configs
 
-SECRET_KEY = settings.SECRET_KEY  # Ensure this is set to a strong random string in your .env
+SECRET_KEY = settings.JWT_SECRET  # Ensure this is set to a strong random string in your .env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days for stable local development testing
 
@@ -20,12 +20,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def verify_access_token(token: str) -> Optional[int]:
+def decode_access_token(token: str) -> Optional[int]:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: str = payload.get("sub")
-        if user_id is None:
-            return None
-        return int(user_id)
+        return payload
     except JWTError:
         return None

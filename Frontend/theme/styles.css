@@ -1,0 +1,469 @@
+/* ===========================================================
+   WorkLens AI - Enterprise SaaS Theme
+   UI-only styling for Streamlit surfaces.
+   =========================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+:root {
+    --wl-bg: #f6f8fb;
+    --wl-surface: #ffffff;
+    --wl-surface-muted: #f8fafc;
+    --wl-sidebar: #0f172a;
+    --wl-sidebar-soft: #172033;
+    --wl-text: #0f172a;
+    --wl-muted: #64748b;
+    --wl-border: #e2e8f0;
+    --wl-border-strong: #cbd5e1;
+    --wl-primary: #2563eb;
+    --wl-primary-soft: #dbeafe;
+    --wl-success: #059669;
+    --wl-success-soft: #d1fae5;
+    --wl-warning: #d97706;
+    --wl-warning-soft: #fef3c7;
+    --wl-danger: #dc2626;
+    --wl-danger-soft: #fee2e2;
+    --wl-info: #0891b2;
+    --wl-info-soft: #cffafe;
+    --wl-radius: 8px;
+    --wl-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+html,
+body,
+[class*="css"] {
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--wl-text);
+    letter-spacing: 0;
+}
+
+[data-testid="stAppViewContainer"] {
+    background:
+        linear-gradient(180deg, rgba(37, 99, 235, 0.045) 0, rgba(37, 99, 235, 0) 220px),
+        var(--wl-bg);
+}
+
+.block-container {
+    max-width: 1440px;
+    padding: 1.35rem 2.25rem 2.25rem;
+}
+
+h1, h2, h3 {
+    color: var(--wl-text);
+    letter-spacing: 0;
+}
+
+h1 { font-size: 2rem; font-weight: 750; }
+h2 { font-size: 1.45rem; font-weight: 700; }
+h3 { font-size: 1.12rem; font-weight: 650; }
+p, .stCaptionContainer, [data-testid="stCaptionContainer"] {
+    color: var(--wl-muted);
+}
+
+/* Page chrome */
+.wl-page-title {
+    color: var(--wl-text);
+    font-size: 1.9rem;
+    font-weight: 760;
+    line-height: 1.2;
+    margin: 0.1rem 0 0.25rem;
+}
+
+.wl-page-subtitle {
+    color: var(--wl-muted);
+    font-size: 0.96rem;
+    line-height: 1.5;
+    max-width: 860px;
+}
+
+.wl-section-rule {
+    height: 1px;
+    background: var(--wl-border);
+    margin: 1rem 0 1.1rem;
+}
+
+.wl-eyebrow {
+    color: var(--wl-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.35rem;
+    text-transform: uppercase;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: var(--wl-sidebar);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-testid="stSidebar"] * {
+    color: #e5edf8;
+}
+
+[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+    color: #94a3b8;
+}
+
+[data-testid="stSidebar"] .stRadio > label {
+    display: none;
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] {
+    gap: 0.25rem;
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] label {
+    border-radius: var(--wl-radius);
+    padding: 0.45rem 0.55rem;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] label:hover {
+    background: var(--wl-sidebar-soft);
+}
+
+[data-testid="stSidebar"] [role="radiogroup"] label:has(input:checked) {
+    background: #1d4ed8;
+}
+
+[data-testid="stSidebar"] hr {
+    border-color: rgba(148, 163, 184, 0.25);
+}
+
+/* Cards and native Streamlit containers */
+[data-testid="stVerticalBlockBorderWrapper"] {
+    background: var(--wl-surface);
+    border: 1px solid var(--wl-border);
+    border-radius: var(--wl-radius);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    border-color: var(--wl-border-strong);
+}
+
+div[data-testid="metric-container"] {
+    background: var(--wl-surface);
+    border: 1px solid var(--wl-border);
+    border-radius: var(--wl-radius);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    padding: 1rem 1.05rem;
+}
+
+div[data-testid="metric-container"] label {
+    color: var(--wl-muted);
+    font-size: 0.76rem;
+    font-weight: 650;
+}
+
+div[data-testid="metric-container"] [data-testid="stMetricValue"] {
+    color: var(--wl-text);
+    font-size: 1.7rem;
+    font-weight: 760;
+}
+
+div[data-testid="metric-container"] [data-testid="stMetricDelta"] {
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+/* Badges and statuses */
+.wl-badge,
+.wl-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0.34rem 0.55rem;
+    white-space: nowrap;
+}
+
+.wl-badge-info,
+.wl-status-info {
+    background: var(--wl-info-soft);
+    color: #155e75;
+}
+
+.wl-badge-success,
+.wl-badge-low,
+.wl-status-completed,
+.wl-status-success {
+    background: var(--wl-success-soft);
+    color: #047857;
+}
+
+.wl-badge-warning,
+.wl-badge-medium,
+.wl-status-in-progress,
+.wl-status-warning {
+    background: var(--wl-warning-soft);
+    color: #92400e;
+}
+
+.wl-badge-danger,
+.wl-badge-high,
+.wl-badge-critical,
+.wl-status-danger,
+.wl-status-error {
+    background: var(--wl-danger-soft);
+    color: #991b1b;
+}
+
+.wl-badge-primary,
+.wl-status-primary {
+    background: var(--wl-primary-soft);
+    color: #1d4ed8;
+}
+
+.wl-empty-icon {
+    color: var(--wl-primary);
+    font-size: 1.15rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Forms and controls */
+.stButton > button,
+.stFormSubmitButton > button {
+    border-radius: var(--wl-radius);
+    border: 1px solid var(--wl-primary);
+    background: var(--wl-primary);
+    color: #ffffff;
+    font-weight: 700;
+    min-height: 2.55rem;
+    transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.stButton > button:hover,
+.stFormSubmitButton > button:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.18);
+}
+
+[data-testid="stSidebar"] .stButton > button {
+    background: transparent;
+    border-color: rgba(148, 163, 184, 0.3);
+    color: #e5edf8;
+}
+
+[data-testid="stSidebar"] .stButton > button:hover {
+    background: var(--wl-sidebar-soft);
+    box-shadow: none;
+}
+
+input,
+textarea,
+[data-baseweb="select"] > div,
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea {
+    border-radius: var(--wl-radius) !important;
+}
+
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea {
+    border-color: var(--wl-border);
+}
+
+[data-testid="stSlider"] {
+    padding-top: 0.2rem;
+}
+
+/* Tables and charts */
+[data-testid="stDataFrame"] {
+    border: 1px solid var(--wl-border);
+    border-radius: var(--wl-radius);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    overflow: hidden;
+}
+
+[data-testid="stTable"] {
+    border-radius: var(--wl-radius);
+    overflow: hidden;
+}
+
+[data-testid="stPlotlyChart"] {
+    background: var(--wl-surface);
+    border: 1px solid var(--wl-border);
+    border-radius: var(--wl-radius);
+    padding: 0.35rem;
+}
+
+/* Alerts, expanders, chat */
+[data-testid="stAlert"] {
+    border-radius: var(--wl-radius);
+    border: 1px solid var(--wl-border);
+}
+
+[data-testid="stExpander"] {
+    border: 1px solid var(--wl-border);
+    border-radius: var(--wl-radius);
+    background: var(--wl-surface);
+}
+
+[data-testid="stChatMessage"] {
+    background: var(--wl-surface);
+    border: 1px solid var(--wl-border);
+    border-radius: var(--wl-radius);
+    padding: 0.6rem;
+}
+
+/* Login page */
+.wl-login-hero-card,
+.wl-login-welcome,
+.wl-login-enterprise,
+.wl-login-feature {
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 12px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+}
+
+.wl-login-hero-card {
+    background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.96), rgba(14, 165, 233, 0.82)),
+        #1d4ed8;
+    color: #ffffff;
+    min-height: 216px;
+    padding: 2.15rem 2.05rem;
+}
+
+.wl-login-kicker {
+    color: rgba(255, 255, 255, 0.78);
+    font-size: 0.73rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    margin-bottom: 0.9rem;
+    text-transform: uppercase;
+}
+
+.wl-login-hero-title {
+    color: #ffffff;
+    font-size: 2.35rem;
+    font-weight: 820;
+    line-height: 1.05;
+    margin-bottom: 1.4rem;
+}
+
+.wl-login-hero-subtitle {
+    color: #eff6ff;
+    font-size: 1.32rem;
+    font-weight: 760;
+    line-height: 1.25;
+    margin-bottom: 1rem;
+}
+
+.wl-login-hero-copy {
+    color: #dbeafe;
+    font-size: 0.96rem;
+    line-height: 1.6;
+    max-width: 720px;
+}
+
+.wl-login-section-title {
+    color: #102033;
+    font-size: 1.45rem;
+    font-weight: 760;
+    margin: 2rem 0 1.05rem;
+}
+
+.wl-login-feature,
+.wl-login-enterprise,
+.wl-login-welcome {
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(10px);
+}
+
+.wl-login-feature {
+    min-height: 108px;
+    padding: 1.25rem 1.15rem;
+    margin-bottom: 1rem;
+}
+
+.wl-login-feature-title {
+    color: #334155;
+    font-size: 0.95rem;
+    font-weight: 760;
+    margin-bottom: 1rem;
+}
+
+.wl-login-feature-body {
+    color: #64748b;
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.wl-login-welcome {
+    border-top: 4px solid #2563eb;
+    margin-bottom: 1.6rem;
+    padding: 1.75rem 1.6rem;
+}
+
+.wl-login-welcome .wl-login-kicker {
+    color: #2563eb;
+    margin-bottom: 0.65rem;
+}
+
+.wl-login-card-title {
+    color: #102033;
+    font-size: 2rem;
+    font-weight: 810;
+    line-height: 1.12;
+    margin-bottom: 1rem;
+}
+
+.wl-login-card-copy {
+    color: #64748b;
+    font-size: 0.94rem;
+}
+
+.wl-login-enterprise {
+    margin-top: 1.15rem;
+    padding: 1.2rem 1.15rem;
+}
+
+.stButton > button *,
+.stFormSubmitButton > button * {
+    color: #ffffff !important;
+}
+
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+a {
+    color: #2563eb;
+    font-weight: 600;
+}
+
+a:hover {
+    color: #1d4ed8;
+}
+
+a.anchor-link {
+    display: none !important;
+}
+
+/* Responsive polish */
+@media (max-width: 900px) {
+    .block-container {
+        padding: 1rem 1rem 1.5rem;
+    }
+
+    .wl-page-title {
+        font-size: 1.55rem;
+    }
+
+    div[data-testid="metric-container"] [data-testid="stMetricValue"] {
+        font-size: 1.45rem;
+    }
+}
+
+/* Hide Streamlit chrome */
+footer { visibility: hidden; }
+header { visibility: hidden; }
+#MainMenu { visibility: hidden; }

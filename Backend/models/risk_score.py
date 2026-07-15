@@ -26,7 +26,7 @@ class RiskScore(Base):
     )
 
     employee_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id")
+        ForeignKey("users.id"),index=True
     )
 
     score: Mapped[float] = mapped_column(

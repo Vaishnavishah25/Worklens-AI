@@ -1,8 +1,8 @@
-"""add risk scores
+"""add_fk_indexes
 
-Revision ID: b1b12eb08eaa
-Revises: 551fcaca79be
-Create Date: 2026-06-24 06:59:05.056934
+Revision ID: 638ec0b63936
+Revises: 5578678f6001
+Create Date: 2026-06-30 08:39:18.502453
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'b1b12eb08eaa'
-down_revision: Union[str, Sequence[str], None] = '551fcaca79be'
+revision: str = '638ec0b63936'
+down_revision: Union[str, Sequence[str], None] = '5578678f6001'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

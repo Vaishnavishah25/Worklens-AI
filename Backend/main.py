@@ -1,41 +1,24 @@
-# app/main.py
-from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from pydantic import BaseModel
 
-from api.v1 import tasks, blockers, updates, auth, dashboard, users, feedback
+# 🔌 Import your verified modular feature routers
 from api.v1.auth import router as auth_router
+from api.v1.tasks import router as tasks_router
+from api.v1.updates import router as updates_router
+from api.v1.blockers import router as blockers_router
+from api.v1.dashboard import router as dashboard_router
 from api.v1.analytics import router as analytics_router
 from api.v1.alerts import router as alerts_router
+from api.v1.feedback import router as feedback_router
 
-from database.session import engine, get_db
-from database.base import Base
-import models
+app = FastAPI(
+    title="WorkLens AI Platform API",
+    version="1.0.0",
+    description="Unified core backend engine for team anomaly tracking and risk analytics."
+)
 
-from schemas.daily_update import UpdateCreate
-from services.update_service import UpdateService
-from schemas.feedback import FeedbackCreate, FeedbackResponse
-from api.v1.tasks import router as tasks_router
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Runs on application startup
-    async with engine.begin() as conn:
-        # 1. Auto-create tables if they don't exist
-        await conn.run_sync(Base.metadata.create_all)
-        
-        # 2. Seed default user with columns matching Member 1's exact model names ('name')
-        await conn.execute(text("""
-            INSERT INTO users (id, name, email, password, role)
-            VALUES (1, 'Default User', 'test@worklens.ai', 'no_pass', 'employee')
-            ON CONFLICT (id) DO NOTHING;
-        """))
-    yield
-
-app = FastAPI(title="WorkLens AI Operational API", version="1.0-MVP", description="Operational tracking system endpoints", lifespan=lifespan)
-
+# CORS Configuration to allow Member 1's frontend to communicate smoothly
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -44,39 +27,53 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 2. ADDED HERE: Mount your separate feature routers under the /v1 namespace
-app.include_router(updates.router, prefix="/v1")
-app.include_router(tasks.router, prefix="/v1")
-app.include_router(blockers.router, prefix="/v1")
-app.include_router(dashboard.router, prefix="/v1")
-app.include_router(users.router, prefix="/v1")
+# 1. Mount modular routers under the standard backend namespace (/v1)
 app.include_router(auth_router, prefix="/v1")
-app.include_router(feedback.router, prefix="/v1")
+app.include_router(updates_router, prefix="/v1")
 app.include_router(tasks_router, prefix="/v1")
+app.include_router(blockers_router, prefix="/v1")
+app.include_router(dashboard_router, prefix="/v1")
 app.include_router(analytics_router, prefix="/v1")
 app.include_router(alerts_router, prefix="/v1")
+app.include_router(feedback_router, prefix="/v1")
 
-# Raw root endpoints
+# 2. Compatibility Layer: Mount under /api/v1 to prevent Member 1's frontend from hitting 404s
+app.include_router(auth_router, prefix="/api/v1")
+app.include_router(updates_router, prefix="/api/v1")
+app.include_router(tasks_router, prefix="/api/v1")
+app.include_router(blockers_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1")
+app.include_router(analytics_router, prefix="/api/v1")
+app.include_router(alerts_router, prefix="/api/v1")
+app.include_router(feedback_router, prefix="/api/v1")
 
-@app.post("/v1/updates", status_code=201)
-async def submit_standup(payload: UpdateCreate, db: AsyncSession = Depends(get_db)):
-    try:
-        service = UpdateService(db)
-        db_update, risk_label = await service.process_and_save(payload, user_id=1)
-        return {
-            "id": db_update.id,
-            "status": "success",
-            "risk_assigned": risk_label
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/v1/ai/query")
-async def ask_worklens_assistant(payload: dict):
+# Temporary Integration Placeholders for AI/Summary Features
+# (These dual decorators keep the frontend UI fully functional until Member 3's AI branch is merged)
+class AIQuery(BaseModel):
+    question: str | None = None
+    query: str | None = None
+
+@app.post("/v1/ai/query", tags=["AI Integration Placeholder"])
+@app.post("/api/v1/ai/query", tags=["AI Integration Placeholder"])
+async def temporary_ai_query(payload: AIQuery):
     return {
-        "response": f"AI Engine Active. Ready for Member 3's RAG module to analyze: '{payload.get('question')}'"
+        "answer": "WorkLens AI analytical insights are initializing. System base is stable.",
+        "citations": [],
+        "sources": []
     }
 
-@app.get("/health")
+@app.get("/v1/summaries/weekly", tags=["AI Integration Placeholder"])
+@app.get("/api/v1/summaries/weekly", tags=["AI Integration Placeholder"])
+async def temporary_weekly_summary():
+    return {
+        "highlights": ["AI automated generation will activate once the vector storage module is pulled down."],
+        "concerns": [],
+        "recommendations": []
+    }
+
+
+# Core System Verification Endpoints
+@app.get("/health", tags=["System Health"])
 async def health_check():
     return {"status": "healthy"}

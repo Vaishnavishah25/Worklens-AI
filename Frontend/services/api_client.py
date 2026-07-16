@@ -5,6 +5,7 @@ from typing import Any
 import requests
 import streamlit as st
 from core.config import settings
+from utils.session import SessionManager
 
 class APIClientError(Exception):
     def __init__(self, status_code: int, message: str):
@@ -80,7 +81,7 @@ class APIClient:
         if not token:
             return False
         try:
-            resp = requests.port(
+            resp = requests.post(
                 f"{cls.BASE_URL}/auth/refresh",
                 json = {"refresh_token":token},
                 timeout =10,

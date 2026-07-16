@@ -10,7 +10,8 @@ from utils.session import SessionManager
 
 
 def _mentor_id() -> int:
-    return int((SessionManager.get_user() or {}).get("id", 2))
+    user = SessionManager.get_user() or {}
+    return int(user.get("id") or user.get("user_id") or user.get("employee_id") or 2)
 
 
 def _handle_error(exc: Exception) -> None:

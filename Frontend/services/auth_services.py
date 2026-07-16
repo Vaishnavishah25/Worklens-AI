@@ -10,17 +10,19 @@ class AuthService:
         try:
             payload = APIClient.post(
                 "/auth/login",
-                {"username": email.strip().lower(), "password": password},
+                {"email": email.strip().lower(), "password": password},
                 include_auth=False,
             )
         except APIClientError as exc:
             return False, exc.user_message
 
-        user = payload["user"]
+        # 🛡️ Defensive Extraction: Fall back to root payload if "user" key is missing
+        user = payload.get("user", payload)
+        
         SessionManager.login(
             user=user,
-            access_token=payload["access_token"],
-            refresh_token=payload["refresh_token"],
+            access_token=payload.get("access_token"),
+            refresh_token=payload.get("refresh_token"),
         )
         return True, "Login successful."
 
@@ -45,11 +47,13 @@ class AuthService:
         except APIClientError as exc:
             return False, exc.user_message
 
-        user = response["user"]
+        # 🛡️ Defensive Extraction: Fall back to root response if "user" key is missing
+        user = response.get("user", response)
+        
         SessionManager.login(
             user=user,
-            access_token=response["access_token"],
-            refresh_token=response["refresh_token"],
+            access_token=response.get("access_token"),
+            refresh_token=response.get("refresh_token"),
         )
         return True, "Account created successfully."
 

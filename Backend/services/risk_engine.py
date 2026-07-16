@@ -1,3 +1,10 @@
+from repositories.task_repo import TaskRepository
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
+from datetime import datetime, timezone
+from models.daily_update import DailyUpdate
+from models.blocker import Blocker
+
 class RiskEngine:
 
     @staticmethod
@@ -39,3 +46,46 @@ class RiskEngine:
             "score": round(score, 2),
             "label": label
         }
+    
+    @classmethod
+    async def get_employee_risk (cls, db: AsyncSession, employee_id: int) -> dict:
+        """DYNAMIC COMPILING LAYER
+        Queries live operational tables to assemble metrics and feeds them into the core mathematical scoring core"""
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        # Fetch days since last update component
+        update_query = (
+            select(DailyUpdate)
+            .where(DailyUpdate.employee_id == employee_id)
+            .order_by(DailyUpdate.created_at.desc())
+            .limit(1)
+        )
+        update_res = await db.execute(update_query)
+        latest_update = update_res.scalar_one_or_none()
+
+        days_no_update = (now - latest_update.created_at).days if latest_update else 7
+        confidence = int(latest_update.confidence_score) if latest_update else 5
+
+        # Fetch active blockers accumulations
+        blocker_query = (
+            select(func.count(Blocker.id))
+            .where(Blocker.user_id == employee_id, Blocker.status == "OPEN")
+        )
+        blocker_res = await db.execute(blocker_query)
+        open_blockers = blocker_res.scalar() or 0
+
+        # Fetch task lifecycles from TaskRepository
+        task_repo = TaskRepository(db)
+        all_tasks = await task_repo.get_by_user(employee_id)
+
+        total_tasks = len([t for t in all_tasks if t.status != "done"])
+        overdue_tasks = len([t for t in all_tasks if t.status != "done" and t.due_date < now.date()])
+
+        # Execute pure mathematical calculation pass
+        return cls.calculate(
+            confidence_score=confidence,
+            open_blockers=open_blockers,
+            days_no_update=days_no_update,
+            overdue_tasks=overdue_tasks,
+            total_tasks=max(total_tasks, 1)
+        )

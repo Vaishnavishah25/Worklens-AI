@@ -59,6 +59,23 @@ class User(Base):
     )
 
     risk_scores = relationship(
-    "RiskScore",
+        "RiskScore",
     back_populates="employee"
 )
+    tasks = relationship(
+        "Task",
+    back_populates="user",
+    cascade="all, delete-orphan"
+)
+    
+    feedback_given = relationship(
+        "Feedback",
+        foreign_keys="[Feedback.mentor_id]",
+        back_populates="mentor"
+    )
+    
+    feedback_received = relationship(
+        "Feedback",
+        foreign_keys="[Feedback.mentee_id]",
+        back_populates="mentee"
+    )

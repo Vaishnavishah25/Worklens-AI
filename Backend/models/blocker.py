@@ -26,11 +26,15 @@ class Blocker(Base):
     )
 
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id")
+        ForeignKey("users.id"),
+        index=True,
+        nullable=False
     )
-
+    
     update_id: Mapped[int] = mapped_column(
-        ForeignKey("daily_updates.id"),index=True
+        ForeignKey("daily_updates.id"),
+        index=True,
+        nullable=True
     )
 
     title: Mapped[str] = mapped_column(

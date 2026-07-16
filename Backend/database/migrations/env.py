@@ -3,6 +3,9 @@ import sys
 
 from logging.config import fileConfig
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from sqlalchemy import engine_from_config , create_engine
 from sqlalchemy import pool
 
@@ -12,7 +15,6 @@ from database.base import Base
 from models import *
 from alembic import context
 from core.config import settings
-
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -51,6 +53,9 @@ def run_migrations_offline():
 
 
 def run_migrations_online():
+    
+    raw_url = config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
+
     sync_url = settings.DATABASE_URL.replace(
         "postgresql+asyncpg://","postgresql://"
     ).replace(

@@ -6,7 +6,7 @@ from pathlib import Path
 import streamlit as st
 
 from auth.login import show_login
-from pages.employee.dashboard import (
+from pages.employee.employee_dashboard import (
     show_daily_update,
     show_employee_dashboard,
     show_feedback_inbox,
@@ -14,7 +14,7 @@ from pages.employee.dashboard import (
     show_my_tasks,
     show_progress_timeline,
 )
-from pages.manager.dashboard import (
+from pages.manager.manager_dashboard import (
     show_ai_assistant_page,
     show_alerts_page,
     show_analytics_page,
@@ -23,7 +23,7 @@ from pages.manager.dashboard import (
     show_team_risk_page,
     show_weekly_summary_page,
 )
-from pages.mentor.dashboard import (
+from pages.mentor.mentor_dashboard import (
     show_feedback_composer_page,
     show_feedback_history_page,
     show_mentees_page,
@@ -170,6 +170,35 @@ def render_route(role: str) -> None:
 
 
 def render_authenticated_app() -> None:
+    st.markdown(
+        """
+        <style>
+        /* Force container display */
+        section[data-testid="stSidebar"], 
+        [data-testid="stSidebar"] > div:first-child,
+        .st-emotion-cache-1eo167e {
+            display: block !important;
+            visibility: visible !important;
+            width: 300px !important;
+            min-width: 300px !important;
+            transform: translate3d(0px, 0px, 0px) !important;
+        }
+        
+        /* Assure main application container flex layout respects sidebar footprint */
+        .stApp {
+            flex-direction: row !important;
+        }
+        
+        /* Force visibility of the sidebar collapse chevron */
+        [data-testid="collapsedControl"] {
+            display: flex !important;
+            visibility: visible !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     role = normalize_role(SessionManager.get_role())
     if not role:
         st.error("Your session has an invalid role. Please sign in again.")

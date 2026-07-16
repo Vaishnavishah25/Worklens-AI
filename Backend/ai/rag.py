@@ -20,19 +20,19 @@ import logging
 from datetime import date, datetime
 from typing import AsyncIterator
 
-from app.ai.embedder import embed_text
-from app.ai.prompts import build_chat_messages, build_context_string, build_recommendations_messages
+from ai.embedder import embed_text
+from ai.prompts import build_chat_messages, build_context_string, build_recommendations_messages
 
 from sqlalchemy import select, func
 
-from app.database.session import SessionLocal
-from app.database.models.user import User
-from app.database.models.daily_update import DailyUpdate
-from app.database.models.blocker import Blocker
+from database.session import SessionLocal
+from database.models.user import User
+from database.models.daily_update import DailyUpdate
+from database.models.blocker import Blocker
 
 
-from app.ai.llm import stream_chat, complete
-from app.vectorstore.faiss_store import faiss_store
+from ai.llm import stream_chat, complete
+from vectorstore.faiss_store import faiss_store
 
 logger = logging.getLogger(__name__)
 

@@ -15,9 +15,9 @@ from ai.prompts import build_context_string
 from ai.llm import complete
 from vectorstore.faiss_store import faiss_store
 
-from app.database.session import SessionLocal
-from app.database.models.daily_update import DailyUpdate
-from app.database.models.blocker import Blocker
+from database.session import SessionLocal
+from database.models.daily_update import DailyUpdate
+from database.models.blocker import Blocker
 
 
 

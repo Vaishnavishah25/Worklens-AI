@@ -42,8 +42,8 @@ try:
     from services.ai_guidance import generate_employee_guidance
     from services.summary_service import generate_team_summary
 except ModuleNotFoundError:
-    from app.ai.rag import stream_rag_response, generate_recommendations
-    from app.schemas.ai import (
+    from ai.rag import stream_rag_response, generate_recommendations
+    from schemas.ai import (
         AIQueryRequest,
         AIQueryResponse,
         AIGuidanceRequest,
@@ -53,8 +53,8 @@ except ModuleNotFoundError:
         RecommendationItem,
         RecommendationsResponse,
     )
-    from app.services.ai_guidance import generate_employee_guidance
-    from app.services.summary_service import generate_team_summary
+    from services.ai_guidance import generate_employee_guidance
+    from services.summary_service import generate_team_summary
 
 logger = logging.getLogger(__name__)
 

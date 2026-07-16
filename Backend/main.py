@@ -4,6 +4,8 @@ WorkLens AI — FastAPI application entry point.
 """
 
 from __future__ import annotations
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 import logging
 from contextlib import asynccontextmanager
@@ -11,16 +13,15 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 load_dotenv()                          # must be first — loads .env before anything else
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+
 
 # ── Member 3 router ──────────────────────────────────────────────────────────
 try:
-    from app.api.v1.ai import router as ai_router
-    from app.api.v1.auth import router as auth_router
-    from app.vectorstore.faiss_store import faiss_store
+    from api.v1.ai import router as ai_router
+    from api.v1.auth import router as auth_router
+    from vectorstore.faiss_store import faiss_store
 except ModuleNotFoundError:
-    from app.api.v1.ai import router as ai_router
+    from api.v1.ai import router as ai_router
     from api.v1.auth import router as auth_router
     from vectorstore.faiss_store import faiss_store
 
@@ -50,7 +51,7 @@ async def lifespan(app: FastAPI):
     logger.info("FAISS index loaded — %d vectors", faiss_store.total_vectors)
 
     try:
-        from app.api.v1.auth import init_db, seed_default_users
+        from api.v1.auth import init_db, seed_default_users
     except ModuleNotFoundError:
         from api.v1.auth import init_db, seed_default_users
 

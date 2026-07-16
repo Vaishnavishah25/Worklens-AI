@@ -11,6 +11,7 @@ from api.v1.dashboard import router as dashboard_router
 from api.v1.analytics import router as analytics_router
 from api.v1.alerts import router as alerts_router
 from api.v1.feedback import router as feedback_router
+from api.v1.users import router as employees_router
 
 app = FastAPI(
     title="WorkLens AI Platform API",
@@ -27,17 +28,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 1. Mount modular routers under the standard backend namespace (/v1)
-app.include_router(auth_router, prefix="/v1")
-app.include_router(updates_router, prefix="/v1")
-app.include_router(tasks_router, prefix="/v1")
-app.include_router(blockers_router, prefix="/v1")
-app.include_router(dashboard_router, prefix="/v1")
-app.include_router(analytics_router, prefix="/v1")
-app.include_router(alerts_router, prefix="/v1")
-app.include_router(feedback_router, prefix="/v1")
-
-# 2. Compatibility Layer: Mount under /api/v1 to prevent Member 1's frontend from hitting 404s
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(updates_router, prefix="/api/v1")
 app.include_router(tasks_router, prefix="/api/v1")
@@ -46,6 +36,7 @@ app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(alerts_router, prefix="/api/v1")
 app.include_router(feedback_router, prefix="/api/v1")
+app.include_router(employees_router, prefix="/api/v1")
 
 
 # Temporary Integration Placeholders for AI/Summary Features

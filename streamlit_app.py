@@ -1148,8 +1148,6 @@ def update_blocker_status(blocker_id: int, new_status: str) -> tuple[bool, str]:
     except Exception as exc:
         return False, str(exc)
     return True, f"Blocker_blockers #{blocker_id} marked {new_status}."
-
-
 def blockers_page() -> None:
     top_bar("Active Blockers", "Track severity, age, status, ownership, and escalation.")
     rows = fetch_blockers()

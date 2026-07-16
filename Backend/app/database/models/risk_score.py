@@ -11,10 +11,12 @@ from sqlalchemy import (
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
-    relationship
 )
 
-from app.database.base import Base
+try:
+    from app.database.base import Base
+except ModuleNotFoundError:
+    from database.base import Base
 
 
 class RiskScore(Base):
@@ -42,7 +44,3 @@ class RiskScore(Base):
         default=datetime.utcnow
     )
 
-    employee = relationship(
-        "User",
-        back_populates="risk_scores"
-    )

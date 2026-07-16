@@ -11,10 +11,12 @@ from sqlalchemy import (
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
-    relationship
 )
 
-from app.database.base import Base
+try:
+    from app.database.base import Base
+except ModuleNotFoundError:
+    from database.base import Base
 
 
 class Blocker(Base):
@@ -55,12 +57,3 @@ class Blocker(Base):
         default=datetime.utcnow
     )
 
-    user = relationship(
-        "User",
-        back_populates="blockers"
-    )
-
-    update = relationship(
-        "DailyUpdate",
-        back_populates="blockers"
-    )

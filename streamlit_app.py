@@ -1,143 +1,127 @@
 from __future__ import annotations
- 
+
+import os
 from datetime import date, datetime, timedelta
- 
+
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import requests
 import streamlit as st
- 
- 
+
+
 st.set_page_config(
     page_title="WorkLens AI",
     page_icon="WL",
     layout="wide",
     initial_sidebar_state="expanded",
 )
- 
- 
-DEMO_USERS = {
-    "manager@worklens.ai": {
-        "password": "manager123",
-        "name": "Maya Chen",
-        "role": "Manager",
-        "title": "Engineering Manager",
-    },
-    "mentor@worklens.ai": {
-        "password": "mentor123",
-        "name": "Ravi Mehta",
-        "role": "Mentor",
-        "title": "Staff Engineer",
-    },
-    "employee@worklens.ai": {
-        "password": "employee123",
-        "name": "Priya Shah",
-        "role": "Employee",
-        "title": "Backend Engineer",
-    },
-}
- 
- 
-EMPLOYEES = pd.DataFrame(
-    [
+
+API_BASE_URL = os.getenv("WORKLENS_API_BASE_URL", "http://127.0.0.1:8000")
+DEFAULT_TEAM_ID = "550e8400-e29b-41d4-a716-446655440000"
+
+
+# ── Live data fetchers (replace hardcoded DataFrames) ──
+
+@st.cache_data(ttl=15)
+def fetch_team_dashboard() -> list[dict]:
+    """Fetch live team dashboard data from the backend."""
+    try:
+        return _request_json(f"{API_BASE_URL}/api/v1/auth/team-dashboard", timeout=10)
+    except Exception:
+        return []
+
+
+@st.cache_data(ttl=15)
+def fetch_blockers(status_filter: str | None = None) -> list[dict]:
+    """Fetch live blockers from the backend."""
+    try:
+        params = {}
+        if status_filter:
+            params["status_filter"] = status_filter
+        return _request_json(f"{API_BASE_URL}/api/v1/auth/blockers", params=params, timeout=10)
+    except Exception:
+        return []
+
+
+@st.cache_data(ttl=15)
+def fetch_employees() -> list[dict]:
+    """Fetch live employee list from the backend."""
+    try:
+        return _request_json(f"{API_BASE_URL}/api/v1/auth/employees", timeout=10)
+    except Exception:
+        return []
+
+
+def _format_last_update(iso_str: str | None) -> str:
+    """Convert ISO datetime to a human-friendly 'X ago' string."""
+    if not iso_str:
+        return "Never"
+    try:
+        dt = datetime.fromisoformat(iso_str)
+        delta = datetime.utcnow() - dt
+        if delta.days == 0:
+            if delta.seconds < 3600:
+                return f"{delta.seconds // 60}m ago"
+            return f"{delta.seconds // 3600}h ago"
+        elif delta.days == 1:
+            return "Yesterday"
+        return f"{delta.days}d ago"
+    except Exception:
+        return iso_str
+def fetch_feedback(user_id: int) -> list[dict]:
+    try:
+        return _request_json(f"{API_BASE_URL}/api/v1/auth/feedback", params={"user_id": user_id}, timeout=10)
+    except Exception:
+        return []
+
+def team_dashboard_as_dataframe() -> pd.DataFrame:
+    rows = fetch_team_dashboard()
+    if not rows:
+        return pd.DataFrame(columns=["Employee", "Role", "Last Update", "Avg Confidence", "Open Blockers", "Total Updates"])
+    return pd.DataFrame([
         {
-            "Employee": "Priya Shah",
-            "Role": "Backend Engineer",
-            "Mentor": "Ravi Mehta",
-            "Last Update": "Today, 9:14 AM",
-            "Risk Score": 42,
-            "Risk": "Medium",
-            "Risk Trend": "Rising",
-            "Open Blockers": 1,
-            "Overdue Tasks": 1,
-            "Confidence": 3.6,
-        },
+            "Employee": r["name"],
+            "Role": r.get("title") or r["role"],
+            "Last Update": _format_last_update(r.get("last_update")),
+            "Avg Confidence": r.get("avg_confidence"),
+            "Open Blockers": r.get("open_blockers", 0),
+            "Total Updates": r.get("total_updates", 0),
+        }
+        for r in rows
+    ])
+
+
+def blockers_as_dataframe() -> pd.DataFrame:
+    rows = fetch_blockers()
+    if not rows:
+        return pd.DataFrame(columns=["Employee", "Blocker", "Severity", "Age", "Status"])
+    today = date.today()
+    def _age(created_at: str | None) -> str:
+        if not created_at:
+            return "?"
+        try:
+            dt = datetime.fromisoformat(created_at).date()
+            d = (today - dt).days
+            if d == 0:
+                return "Today"
+            elif d == 1:
+                return "1d"
+            return f"{d}d"
+        except Exception:
+            return "?"
+    return pd.DataFrame([
         {
-            "Employee": "Anita Rao",
-            "Role": "Frontend Engineer",
-            "Mentor": "Ravi Mehta",
-            "Last Update": "Yesterday, 5:40 PM",
-            "Risk Score": 76,
-            "Risk": "High",
-            "Risk Trend": "Rising",
-            "Open Blockers": 2,
-            "Overdue Tasks": 3,
-            "Confidence": 2.1,
-        },
-        {
-            "Employee": "Jordan Lee",
-            "Role": "Platform Engineer",
-            "Mentor": "Elena Torres",
-            "Last Update": "Today, 10:02 AM",
-            "Risk Score": 24,
-            "Risk": "Low",
-            "Risk Trend": "Stable",
-            "Open Blockers": 0,
-            "Overdue Tasks": 0,
-            "Confidence": 4.4,
-        },
-        {
-            "Employee": "Noah Williams",
-            "Role": "Data Engineer",
-            "Mentor": "Elena Torres",
-            "Last Update": "2 days ago",
-            "Risk Score": 63,
-            "Risk": "High",
-            "Risk Trend": "Rising",
-            "Open Blockers": 2,
-            "Overdue Tasks": 2,
-            "Confidence": 2.7,
-        },
-        {
-            "Employee": "Sara Ahmed",
-            "Role": "QA Engineer",
-            "Mentor": "Ravi Mehta",
-            "Last Update": "Today, 8:52 AM",
-            "Risk Score": 31,
-            "Risk": "Low",
-            "Risk Trend": "Improving",
-            "Open Blockers": 0,
-            "Overdue Tasks": 1,
-            "Confidence": 4.1,
-        },
-    ]
-)
- 
- 
-BLOCKERS = pd.DataFrame(
-    [
-        {
-            "Employee": "Anita Rao",
-            "Blocker": "Waiting on design tokens for onboarding flow",
-            "Severity": "High",
-            "Age": "4d",
-            "Status": "Open",
-        },
-        {
-            "Employee": "Noah Williams",
-            "Blocker": "Warehouse schema migration blocked by permissions",
-            "Severity": "Critical",
-            "Age": "2d",
-            "Status": "Escalated",
-        },
-        {
-            "Employee": "Priya Shah",
-            "Blocker": "API contract still changing for billing service",
-            "Severity": "Medium",
-            "Age": "1d",
-            "Status": "Open",
-        },
-        {
-            "Employee": "Anita Rao",
-            "Blocker": "E2E test data missing for SSO edge cases",
-            "Severity": "Medium",
-            "Age": "3d",
-            "Status": "Open",
-        },
-    ]
-)
- 
- 
+            "Employee": r.get("employee_name") or f"User {r['user_id']}",
+            "Blocker": r["description"],
+            "Severity": r["severity"],
+            "Age": _age(r.get("created_at")),
+            "Status": r["status"].capitalize(),
+        }
+        for r in rows
+    ])
+
+
 TASKS = pd.DataFrame(
     [
         {"Task": "Finalize billing API adapter", "Due": "Today", "Status": "In Progress", "Risk": "Medium"},
@@ -146,8 +130,8 @@ TASKS = pd.DataFrame(
         {"Task": "Patch invoice export regression", "Due": "Jun 23", "Status": "Completed", "Risk": "Low"},
     ]
 )
- 
- 
+
+
 FEEDBACK = pd.DataFrame(
     [
         {
@@ -329,6 +313,51 @@ def initialize_state() -> None:
     st.session_state.setdefault("theme", "Light")
     st.session_state.setdefault("notifications", 5)
     st.session_state.setdefault("submitted_update", None)
+    st.session_state.setdefault("ai_messages", [])
+    st.session_state.setdefault("weekly_summary_answer", None)
+    st.session_state.setdefault("ai_recommendation_answer", None)
+
+
+def _request_json(url: str, params: dict | None = None, timeout: int = 30):
+    response = requests.get(url, params=params, timeout=timeout)
+    response.raise_for_status()
+    return response.json()
+
+
+def _post_json(url: str, payload: dict, timeout: int = 30):
+    response = requests.post(url, json=payload, timeout=timeout)
+    response.raise_for_status()
+    return response.json()
+
+
+def get_ai_answer(question: str, team_id: str = DEFAULT_TEAM_ID) -> str:
+    try:
+        data = _request_json(
+            f"{API_BASE_URL}/api/v1/ai/query/sync",
+            params={"question": question, "team_id": team_id},
+            timeout=45,
+        )
+    except Exception as exc:
+        return f"Backend AI request failed: {exc}"
+    return data.get("answer") or "No AI answer was returned."
+
+
+def create_user_account(name: str, email: str, password: str, role: str, title: str | None = None) -> tuple[bool, str]:
+    try:
+        user = _post_json(
+            f"{API_BASE_URL}/api/v1/auth/users",
+            {
+                "name": name.strip(),
+                "email": email.strip().lower(),
+                "password": password,
+                "role": role,
+                "title": title or role,
+            },
+            timeout=15,
+        )
+    except Exception as exc:
+        return False, f"Could not create user: {exc}"
+    return True, f"Created {user['email']} in the local database."
  
  
 def badge(label: str, kind: str = "info") -> str:
@@ -387,21 +416,48 @@ def login_screen() -> None:
             password = st.text_input("Password", type="password")
             remember = st.checkbox("Remember me", value=True)
             submitted = st.form_submit_button("Log in", use_container_width=True, type="primary")
-        with st.expander("Demo credentials", expanded=True):
+        with st.expander("Default accounts", expanded=True):
             st.code(
                 "Manager  manager@worklens.ai / manager123\n"
                 "Mentor   mentor@worklens.ai / mentor123\n"
                 "Employee employee@worklens.ai / employee123",
                 language="text",
             )
+        with st.expander("Create account", expanded=False):
+            with st.form("create_user_form"):
+                new_name = st.text_input("Full name", placeholder="New User")
+                new_email = st.text_input("New email", placeholder="new.user@worklens.ai")
+                new_password = st.text_input("New password", type="password")
+                new_role = st.selectbox("Role", ["Employee", "Mentor", "Manager"])
+                new_title = st.text_input("Title", placeholder="Software Engineer")
+                create_submitted = st.form_submit_button("Store user in database", use_container_width=True)
+            if create_submitted:
+                if not new_name.strip() or not new_email.strip() or len(new_password) < 6:
+                    st.error("Enter a name, email, and password with at least 6 characters.")
+                else:
+                    ok, message = create_user_account(new_name, new_email, new_password, new_role, new_title)
+                    if ok:
+                        st.success(message)
+                    else:
+                        st.error(message)
         if submitted:
-            user = DEMO_USERS.get(email.strip().lower())
-            if user and user["password"] == password:
+            try:
+                response = requests.post(
+                    f"{API_BASE_URL}/api/v1/auth/login",
+                    json={"email": email.strip().lower(), "password": password},
+                    timeout=10,
+                )
+            except Exception:
+                st.error("Unable to reach the backend authentication service.")
+                return
+            if response.ok:
+                user = response.json()
                 st.session_state.authenticated = True
-                st.session_state.user = {**user, "email": email.strip().lower(), "remember": remember}
+                st.session_state.user = {**user, "remember": remember}
                 st.session_state.page = "Dashboard"
                 st.rerun()
-            st.error("Invalid username or password.")
+            else:
+                st.error("Invalid username or password.")
  
  
 def sidebar() -> None:
@@ -465,7 +521,11 @@ def employee_dashboard() -> None:
         if st.button("Submit daily update", type="primary", use_container_width=True):
             st.session_state.page = "Daily Update"
             st.rerun()
-        st.button("View last update", use_container_width=True)
+        if st.button("View last update", use_container_width=True):
+            if st.session_state.submitted_update:
+                st.json(st.session_state.submitted_update)
+            else:
+                st.info("No update has been submitted in this session yet.")
     k1, k2, k3, k4, k5 = st.columns(5)
     k1.metric("Daily streak", "8 days", "+2")
     k2.metric("Confidence trend", "3.6 / 5", "-0.4")
@@ -473,6 +533,15 @@ def employee_dashboard() -> None:
     k4.metric("Active blockers", "1", "API contract")
     k5.metric("Feedback received", "3", "1 unread")
     left, right = st.columns([1.15, 1], gap="large")
+    with left:
+        st.subheader("Progress timeline")
+        timeline()
+    with right:
+        st.subheader("Recent feedback")
+        feedback_list()
+        st.subheader("Personal risk")
+        personal_risk_widget()
+        left, right = st.columns([1.15, 1], gap="large")
     with left:
         st.subheader("Progress timeline")
         timeline()
@@ -499,15 +568,32 @@ def daily_update() -> None:
         elif severity != "None" and not no_blockers and not blocker:
             st.error("Please describe the blocker or select 'No blockers today'.")
         else:
-            st.session_state.submitted_update = {
+            payload = {
+                "user_id": st.session_state.user["id"],
                 "work_done": work_done,
-                "blocker": "No blockers today" if no_blockers else blocker,
-                "severity": severity,
-                "next_steps": next_steps,
-                "confidence": confidence,
-                "submitted_at": datetime.now().strftime("%I:%M %p"),
+                "planned_work": next_steps,
+                "confidence_score": float(confidence),
+                "blocker_description": None if no_blockers else blocker,
+                "blocker_severity": None if severity == "None" else severity,
             }
-            st.success("Update submitted. Your manager and mentor can now see today's progress.")
+            try:
+                response = requests.post(
+                    f"{API_BASE_URL}/api/v1/auth/daily-updates",
+                    json=payload,
+                    timeout=10,
+                )
+            except Exception as exc:
+                st.error(f"Unable to reach the backend service: {exc}")
+                return
+
+            if response.ok:
+                st.session_state.submitted_update = {
+                    **payload,
+                    "submitted_at": datetime.now().strftime("%I:%M %p"),
+                }
+                st.success("Update submitted and stored in the database.")
+            else:
+                st.error(f"Submission failed: {response.text}")
     if st.session_state.submitted_update:
         with st.expander("Submitted update", expanded=True):
             st.json(st.session_state.submitted_update)
@@ -526,8 +612,10 @@ def my_tasks() -> None:
                 c1.markdown(f"**{row['Task']}**  \n<span class='wl-muted'>Due {row['Due']}</span>", unsafe_allow_html=True)
                 c2.markdown(badge(row["Risk"], risk_kind(row["Risk"])), unsafe_allow_html=True)
                 if status != "Completed":
-                    c3.button("Mark done", key=f"done_{row['Task']}")
-                    c3.button("Report blocker", key=f"blocker_{row['Task']}")
+                    if c3.button("Mark done", key=f"done_{row['Task']}"):
+                        st.success(f"Marked '{row['Task']}' as done for this session.")
+                    if c3.button("Report blocker", key=f"blocker_{row['Task']}"):
+                        st.warning(f"Blocker report started for '{row['Task']}'.")
  
  
 def timeline() -> None:
@@ -551,18 +639,25 @@ def timeline() -> None:
         )
  
  
-def feedback_list() -> None:
-    for _, row in FEEDBACK.iterrows():
-        kind = {"Praise": "risk-low", "Guidance": "type-info", "Concern": "risk-medium"}[row["Type"]]
-        unread = " · unread" if row["Unread"] else ""
+def feedback_list(user_id: int | None = None) -> None:
+    user_id = user_id or st.session_state.user["id"]
+    rows = fetch_feedback(user_id)
+    if not rows:
+        st.info("No feedback received yet.")
+        return
+    kind_map = {"praise": "risk-low", "guidance": "type-info", "concern": "risk-medium"}
+    for r in rows:
+        kind = kind_map.get(r["type"], "type-info")
+        unread = " · unread" if not r["is_read"] else ""
+        when = r["created_at"][:10] if r.get("created_at") else ""
         st.markdown(
             f"""
             <div class="wl-card wl-tight" style="margin-bottom:10px;">
                 <div class="wl-row">
-                    <b>{row['From']}</b>{badge(row['Type'], kind)}
+                    <b>{r['from_name']}</b>{badge(r['type'].capitalize(), kind)}
                 </div>
-                <div class="wl-muted">{row['Date']}{unread}</div>
-                <div style="margin-top:8px;">{row['Message']}</div>
+                <div class="wl-muted">{when}{unread}</div>
+                <div style="margin-top:8px;">{r['content']}</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -588,6 +683,7 @@ def personal_risk_widget() -> None:
         </div>
         """,
         unsafe_allow_html=True,
+        
     )
  
  
@@ -595,19 +691,9 @@ def progress_timeline_page() -> None:
     top_bar("Progress Timeline", "A chronological view of updates, confidence, blockers, and feedback.")
     timeline()
  
- 
 def feedback_inbox_page() -> None:
     top_bar("Feedback Inbox", "Review praise, guidance, and concerns from mentors and managers.")
-    left, right = st.columns([.95, 1.15], gap="large")
-    with left:
-        feedback_list()
-    with right:
-        card(
-            "Selected feedback",
-            "Good progress on the adapter. Please call out billing API churn early in tomorrow's update.",
-            "Guidance from Ravi Mehta",
-            badge("Unread", "type-info"),
-        )
+    feedback_list()
  
  
 def personal_risk_page() -> None:
@@ -615,6 +701,25 @@ def personal_risk_page() -> None:
     left, right = st.columns([.9, 1.1], gap="large")
     with left:
         personal_risk_widget()
+        left, right = st.columns([1.15, 1], gap="large")
+    with left:
+        st.subheader("Progress timeline")
+        timeline()
+    with right:
+        st.subheader("Recent feedback")
+        feedback_list()
+        st.subheader("Personal risk")
+        personal_risk_widget()
+        st.subheader("My blockers")
+        my_blockers = fetch_blockers(user_id=st.session_state.user["id"])
+        if not my_blockers:
+            st.info("No blockers reported.")
+        for b in my_blockers:
+            st.markdown(
+                f"**{b['description']}** — "
+                f"{badge(b['status'].capitalize(), risk_kind({'open':'Medium','escalated':'High','resolved':'Low'}.get(b['status'],'Low')))}",
+                unsafe_allow_html=True,
+            )
     with right:
         st.subheader("Confidence trend")
         trend_chart()
@@ -640,36 +745,41 @@ def manager_dashboard() -> None:
  
  
 def team_risk_table() -> None:
-    display = EMPLOYEES.copy()
-    display["Risk Label"] = display["Risk"]
-    st.dataframe(
-        display[["Employee", "Last Update", "Risk Score", "Risk Label", "Risk Trend", "Open Blockers", "Overdue Tasks"]],
-        hide_index=True,
-        use_container_width=True,
-    )
+    display = team_dashboard_as_dataframe()
+    if display.empty:
+        st.info("No team data found. Have employees submitted daily updates?")
+    else:
+        st.dataframe(
+            display,
+            hide_index=True,
+            use_container_width=True,
+        )
     st.caption("Actions: view profile, prepare 1:1, message mentor, ask AI, create action item.")
- 
- 
+
+
 def blockers_table() -> None:
-    st.dataframe(BLOCKERS, hide_index=True, use_container_width=True)
+    display = blockers_as_dataframe()
+    if display.empty:
+        st.info("No blockers found in the database yet.")
+    else:
+        st.dataframe(display, hide_index=True, use_container_width=True)
     st.caption("Critical and aging blockers should be triaged first.")
  
  
 def weekly_summary_card() -> None:
+    summary = (
+        st.session_state.weekly_summary_answer
+        or "Click Generate weekly summary to create an AI summary from the seeded team data."
+    ).replace("\n", "<br>")
     st.markdown(
-        """
+        f"""
         <div class="wl-card">
             <div class="wl-row">
                 <h3 style="margin:0;">Weekly Summary</h3>
                 <span class="wl-badge type-ai">AI generated</span>
             </div>
             <div class="wl-divider"></div>
-            <b>Highlights</b>
-            <ul><li>Update completion improved to 91%.</li><li>Two blockers were resolved within 24 hours.</li></ul>
-            <b>Concerns</b>
-            <ul><li>Frontend and data workstreams show rising risk.</li><li>Critical warehouse permission blocker is aging.</li></ul>
-            <b>Recommendations</b>
-            <ul><li>Schedule 1:1s with Anita and Noah.</li><li>Assign an owner to unblock warehouse permissions today.</li></ul>
+            <div>{summary}</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -677,17 +787,25 @@ def weekly_summary_card() -> None:
  
  
 def ai_recommendations() -> None:
+    answer = (
+        st.session_state.ai_recommendation_answer
+        or "Click Generate AI recommendation to ask WorkLens who needs attention."
+    ).replace("\n", "<br>")
     st.markdown(
-        """
+        f"""
         <div class="wl-card wl-ai-response">
             <div class="wl-eyebrow">AI WorkLens Assistant</div>
             <h3 style="margin:.1rem 0;">Who needs immediate help?</h3>
-            <p>Anita Rao and Noah Williams show the strongest intervention signals based on blocker age, confidence decline, and overdue tasks.</p>
+            <p>{answer}</p>
             <div class="wl-muted">Sources: daily updates, active blockers, risk scores</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+    button_label = "Refresh AI recommendation" if st.session_state.ai_recommendation_answer else "Generate AI recommendation"
+    if st.button(button_label, use_container_width=True):
+        st.session_state.ai_recommendation_answer = get_ai_answer("Who needs immediate help and what should I do today?")
+        st.rerun()
  
  
 def team_risk_page() -> None:
@@ -704,9 +822,12 @@ def blockers_page() -> None:
     top_bar("Active Blockers", "Track severity, age, status, ownership, and escalation.")
     blockers_table()
     c1, c2, c3 = st.columns(3)
-    c1.button("Assign owner", use_container_width=True)
-    c2.button("Escalate selected", use_container_width=True)
-    c3.button("Mark resolved", use_container_width=True)
+    if c1.button("Assign owner", use_container_width=True):
+        st.success("Owner assignment simulated for the selected blocker.")
+    if c2.button("Escalate selected", use_container_width=True):
+        st.warning("Selected blocker escalation simulated.")
+    if c3.button("Mark resolved", use_container_width=True):
+        st.success("Selected blocker marked resolved for this session.")
  
  
 def ai_assistant_page() -> None:
@@ -714,43 +835,65 @@ def ai_assistant_page() -> None:
     history, chat, sources = st.columns([.75, 1.6, .9], gap="large")
     with history:
         st.subheader("History")
-        for item in ["Sprint risk review", "1:1 prep for Anita", "Weekly blocker summary"]:
-            st.button(item, use_container_width=True)
+        for item in ["Sprint risk review", "1:1 prep for Priya", "Weekly blocker summary"]:
+            if st.button(item, use_container_width=True):
+                prompt = {
+                    "Sprint risk review": "Give me a sprint risk review for this team.",
+                    "1:1 prep for Priya": "Prepare me for a 1 on 1 with Priya today.",
+                    "Weekly blocker summary": "Summarize the open blockers for this team.",
+                }[item]
+                st.session_state.ai_messages.append(("user", prompt))
+                st.session_state.ai_messages.append(("assistant", get_ai_answer(prompt)))
+                st.rerun()
         st.subheader("Suggested prompts")
-        for prompt in ["Who needs immediate help?", "What is blocking the sprint?", "Prepare my 1:1s.", "Why is team health declining?"]:
-            st.caption(prompt)
+        for prompt in ["Who needs immediate help?", "What is blocking the sprint?", "Prepare my 1:1s.", "Why is Priya delayed?"]:
+            if st.button(prompt, key=f"suggested_{prompt}", use_container_width=True):
+                st.session_state.ai_messages.append(("user", prompt))
+                st.session_state.ai_messages.append(("assistant", get_ai_answer(prompt)))
+                st.rerun()
     with chat:
-        st.markdown('<div class="wl-chat"><b>You</b><br>Who needs immediate help?</div>', unsafe_allow_html=True)
-        st.markdown(
-            """
-            <div class="wl-chat wl-ai-response">
-                <b>WorkLens AI</b>
-                <p>Two team members need immediate support: Anita Rao and Noah Williams.</p>
-                <ol>
-                    <li><b>Anita Rao</b>: risk increased to 76 with two blockers and declining confidence.</li>
-                    <li><b>Noah Williams</b>: critical warehouse permission blocker is escalated and two days old.</li>
-                </ol>
-                <p><b>Recommended actions:</b> schedule focused 1:1s, assign unblock owners, and review overdue work scope.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        st.chat_input("Ask about risks, blockers, updates, or 1:1 prep...")
+        if not st.session_state.ai_messages:
+            st.info("Ask a question below, or click a suggested prompt on the left.")
+        for role, message in st.session_state.ai_messages:
+            css_class = "wl-chat wl-ai-response" if role == "assistant" else "wl-chat"
+            label = "WorkLens AI" if role == "assistant" else "You"
+            st.markdown(
+                f'<div class="{css_class}"><b>{label}</b><br>{message.replace(chr(10), "<br>")}</div>',
+                unsafe_allow_html=True,
+            )
+        prompt = st.chat_input("Ask about risks, blockers, updates, or 1:1 prep...")
+        if prompt:
+            st.session_state.ai_messages.append(("user", prompt))
+            st.session_state.ai_messages.append(("assistant", get_ai_answer(prompt)))
+            st.rerun()
     with sources:
         st.subheader("Sources")
-        card("Daily updates", "5 updates reviewed from the current sprint.", badge_html=badge("Cited", "type-ai"))
-        card("Blockers", "4 open blockers, including 1 critical escalation.", badge_html=badge("Live", "risk-medium"))
-        card("Risk scores", "Latest generated scores for all team members.", badge_html=badge("Fresh", "type-teal"))
+        card("Daily updates", "Retrieved from FAISS seeded update records.", badge_html=badge("Cited", "type-ai"))
+        card("Blockers", "Open blocker records are included in AI context.", badge_html=badge("Live", "risk-medium"))
+        card("Team ID", DEFAULT_TEAM_ID, badge_html=badge("Active", "type-teal"))
  
  
 def weekly_summary_page() -> None:
     top_bar("Weekly Summary", "AI-generated highlights, concerns, and recommendations.")
     weekly_summary_card()
     c1, c2, c3, c4 = st.columns(4)
-    c1.button("Regenerate", use_container_width=True)
-    c2.button("Copy", use_container_width=True)
-    c3.button("Export", use_container_width=True)
-    c4.button("Send to Slack", use_container_width=True)
+    summary_button = "Regenerate" if st.session_state.weekly_summary_answer else "Generate"
+    if c1.button(summary_button, use_container_width=True):
+        st.session_state.weekly_summary_answer = get_ai_answer(
+            "Regenerate the weekly team summary with highlights, concerns, and actions."
+        )
+        st.rerun()
+    if c2.button("Copy", use_container_width=True):
+        st.info("Summary is ready above for copying.")
+    if c3.button("Export", use_container_width=True):
+        st.download_button(
+            "Download summary text",
+            st.session_state.weekly_summary_answer or "",
+            file_name="worklens_weekly_summary.txt",
+            use_container_width=True,
+        )
+    if c4.button("Send to Slack", use_container_width=True):
+        st.success("Slack send simulated. Connect a Slack webhook when ready.")
  
  
 def analytics_page() -> None:
@@ -771,7 +914,37 @@ def analytics_page() -> None:
         heatmap_chart()
     st.subheader("Confidence radar")
     radar_chart()
- 
+def fetch_team_feedback(manager_id: int) -> list[dict]:
+    try:
+        return _request_json(f"{API_BASE_URL}/api/v1/auth/feedback/team", params={"manager_id": manager_id}, timeout=10)
+    except Exception:
+        return []
+
+
+def alerts_page() -> None:
+    top_bar("Alerts", "Prioritized notifications and risk events.")
+    alerts = [
+        ("Critical", "Noah's warehouse migration blocker is escalated and aging.", "risk-high"),
+        ("Warning", "Anita's confidence has declined for three consecutive updates.", "risk-medium"),
+        ("Info", "Weekly summary is ready for review.", "type-info"),
+        ("Success", "Jordan resolved all assigned blockers.", "risk-low"),
+    ]
+    for level, message, kind in alerts:
+        card(level, message, badge_html=badge(level, kind))
+
+    st.subheader("Team feedback shared with you")
+    rows = fetch_team_feedback(st.session_state.user["id"])
+    if not rows:
+        st.info("No feedback has been shared with 'Employee and manager' visibility yet.")
+    kind_map = {"praise": "risk-low", "guidance": "type-info", "concern": "risk-medium"}
+    for r in rows:
+        when = r["created_at"][:10] if r.get("created_at") else ""
+        card(
+            f"{r['type'].capitalize()} for {r['to_name']}",
+            r["content"],
+            eyebrow=f"From {r['from_name']} · {when}",
+            badge_html=badge(r["type"].capitalize(), kind_map.get(r["type"], "type-info")),
+        )
  
 def trend_chart() -> None:
     days = [date.today() - timedelta(days=i) for i in range(13, -1, -1)]
@@ -825,39 +998,70 @@ def alerts_page() -> None:
  
 def mentor_dashboard() -> None:
     top_bar("Mentor Dashboard", "Review assigned mentees, trends, blockers, and feedback.")
-    mentee = st.selectbox("Mentee selector", ["Priya Shah", "Anita Rao", "Sara Ahmed"])
-    selected = EMPLOYEES[EMPLOYEES["Employee"] == mentee].iloc[0]
+    rows = fetch_team_dashboard()
+    if not rows:
+        st.info("No employee data available yet.")
+        return
+    names = [r["name"] for r in rows]
+    mentee_name = st.selectbox("Mentee selector", names)
+    selected = next((r for r in rows if r["name"] == mentee_name), rows[0])
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Risk score", selected["Risk Score"], selected["Risk"])
-    k2.metric("Confidence", selected["Confidence"], selected["Risk Trend"])
-    k3.metric("Open blockers", selected["Open Blockers"])
-    k4.metric("Last update", selected["Last Update"])
+    k1.metric("Updates", selected.get("total_updates", 0))
+    k2.metric("Avg Confidence", selected.get("avg_confidence") or "N/A")
+    k3.metric("Open blockers", selected.get("open_blockers", 0))
+    k4.metric("Last update", _format_last_update(selected.get("last_update")))
     left, right = st.columns([1.15, 1], gap="large")
     with left:
         st.subheader("Weekly progress timeline")
         timeline()
     with right:
-        feedback_composer(selected["Employee"])
+        feedback_composer(selected["name"])
         st.subheader("Feedback history")
         feedback_history()
  
- 
-def feedback_composer(employee: str | None = None) -> None:
+def feedback_composer(employee: str | None = None, employee_id: int | None = None) -> None:
     st.subheader("Feedback composer")
+
+    if employee_id is None:
+        # Standalone page — build the dropdown from real employees, not a hardcoded list
+        employees = [r for r in fetch_team_dashboard() if r.get("role") == "Employee"]
+        if not employees:
+            st.info("No employees found yet.")
+            return
+        name_to_id = {r["name"]: r["id"] for r in employees}
+        target = employee or st.selectbox("Mentee", list(name_to_id.keys()))
+        employee_id = name_to_id.get(target)
+    else:
+        target = employee
+
     with st.form(f"feedback_form_{employee or 'generic'}"):
-        target = employee or st.selectbox("Mentee", ["Priya Shah", "Anita Rao", "Sara Ahmed"])
         kind = st.segmented_control("Type", ["Praise", "Guidance", "Concern"], default="Guidance")
         visibility = st.radio("Visibility", ["Employee only", "Employee and manager"], horizontal=True)
         message = st.text_area("Message", max_chars=1000, placeholder="Write specific, actionable feedback...")
         st.caption(f"{len(message)} / 1000 characters")
         sent = st.form_submit_button(f"Send feedback to {target}", type="primary", use_container_width=True)
+
     if sent:
         if len(message.strip()) < 10:
             st.error("Feedback must be at least 10 characters.")
+        elif not employee_id:
+            st.error("Could not resolve the recipient's user id.")
         else:
-            st.success(f"{kind} feedback sent to {target}. Visibility: {visibility}.")
- 
- 
+            try:
+                _post_json(
+                    f"{API_BASE_URL}/api/v1/auth/feedback",
+                    {
+                        "from_user_id": st.session_state.user["id"],
+                        "to_user_id": employee_id,
+                        "type": kind.lower(),
+                        "content": message,
+                        "visibility": "employee_only" if visibility == "Employee only" else "employee_manager",
+                    },
+                    timeout=10,
+                )
+                st.success(f"{kind} feedback sent to {target}. Visibility: {visibility}.")
+            except Exception as exc:
+                st.error(f"Could not send feedback: {exc}")
 def feedback_history() -> None:
     history = FEEDBACK[["Date", "From", "Type", "Message"]].rename(columns={"From": "Sender"})
     st.dataframe(history, hide_index=True, use_container_width=True)
@@ -865,7 +1069,11 @@ def feedback_history() -> None:
  
 def mentees_page() -> None:
     top_bar("Mentees", "Assigned mentees with current risk and update status.")
-    st.dataframe(EMPLOYEES[EMPLOYEES["Mentor"] == "Ravi Mehta"], hide_index=True, use_container_width=True)
+    display = team_dashboard_as_dataframe()
+    if display.empty:
+        st.info("No employee data available yet.")
+    else:
+        st.dataframe(display, hide_index=True, use_container_width=True)
  
  
 def feedback_composer_page() -> None:
@@ -918,8 +1126,59 @@ def main() -> None:
     sidebar()
     route()
  
- 
+def fetch_blockers(status_filter: str | None = None, user_id: int | None = None) -> list[dict]:
+    try:
+        params = {}
+        if status_filter:
+            params["status_filter"] = status_filter
+        if user_id is not None:
+            params["user_id"] = user_id
+        return _request_json(f"{API_BASE_URL}/api/v1/auth/blockers", params=params, timeout=10)
+    except Exception:
+        return []
+
+
+def update_blocker_status(blocker_id: int, new_status: str) -> tuple[bool, str]:
+    try:
+        requests.put(
+            f"{API_BASE_URL}/api/v1/auth/blockers/{blocker_id}/status",
+            json={"status": new_status},
+            timeout=10,
+        ).raise_for_status()
+    except Exception as exc:
+        return False, str(exc)
+    return True, f"Blocker_blockers #{blocker_id} marked {new_status}."
+
+
+def blockers_page() -> None:
+    top_bar("Active Blockers", "Track severity, age, status, ownership, and escalation.")
+    rows = fetch_blockers()
+    if not rows:
+        st.info("No blockers found in the database yet.")
+        return
+
+    blockers_table()
+
+    options = {f"#{r['id']} — {r.get('employee_name','?')}: {r['description'][:60]}": r["id"] for r in rows}
+    selected_label = st.selectbox("Select a blocker to act on", list(options.keys()))
+    selected_id = options[selected_label]
+
+    c1, c2, c3 = st.columns(3)
+    if c1.button("Escalate selected", use_container_width=True):
+        ok, msg = update_blocker_status(selected_id, "escalated")
+        (st.success if ok else st.error)(msg)
+        st.cache_data.clear()
+        st.rerun()
+    if c2.button("Mark resolved", use_container_width=True):
+        ok, msg = update_blocker_status(selected_id, "resolved")
+        (st.success if ok else st.error)(msg)
+        st.cache_data.clear()
+        st.rerun()
+    if c3.button("Reopen", use_container_width=True):
+        ok, msg = update_blocker_status(selected_id, "open")
+        (st.success if ok else st.error)(msg)
+        st.cache_data.clear()
+        st.rerun()
+
 if __name__ == "__main__":
     main()
- 
- 

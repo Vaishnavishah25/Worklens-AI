@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.models.risk_score import RiskScore
+from database.models.risk_score import RiskScore
 
 
 class RiskRepository:

@@ -11,20 +11,20 @@ from pydantic import BaseModel
 from sqlalchemy import select, func
 
 try:
-    from app.database.models.daily_update import DailyUpdate
-    from app.database.models.blocker import Blocker
+    from database.models.daily_update import DailyUpdate
+    from database.models.blocker import Blocker
 except ModuleNotFoundError:
     from database.models.daily_update import DailyUpdate
     from database.models.blocker import Blocker
 
 try:
-    from app.database.models.user import User
-    from app.database.session import SessionLocal
+    from database.models.user import User
+    from database.session import SessionLocal
 except ModuleNotFoundError:
     from database.models.user import User
     from database.session import SessionLocal
 try:
-    from app.database.models.feedback import Feedback
+    from database.models.feedback import Feedback
 except ModuleNotFoundError:
     from database.models.feedback import Feedback
 
@@ -131,14 +131,13 @@ def _verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def init_db() -> None:
     try:
-        from app.database.base import Base
-        from app.database.models.user import User  # noqa: F401
-        from app.database.models.daily_update import DailyUpdate  # noqa: F401
-        from app.database.models.blocker import Blocker  # noqa: F401
-        from app.database.models.risk_score import RiskScore  # noqa: F401
-        from app.database.models.weekly_summary import WeeklySummary  # noqa: F401
-        from app.database.session import engine
-        from app.database.models.feedback import Feedback  # noqa: F401
+        from database.models.user import User  # noqa: F401
+        from database.models.daily_update import DailyUpdate  # noqa: F401
+        from database.models.blocker import Blocker  # noqa: F401
+        from database.models.risk_score import RiskScore  # noqa: F401
+        from database.models.weekly_summary import WeeklySummary  # noqa: F401
+        from database.session import engine
+        from database.models.feedback import Feedback  # noqa: F401
     except ModuleNotFoundError:
         from database.base import Base
         from database.models.user import User  # noqa: F401

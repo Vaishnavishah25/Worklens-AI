@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 try:
-    from app.core.config import settings
+    from core.config import settings
 except ModuleNotFoundError:
     from core.config import settings
 

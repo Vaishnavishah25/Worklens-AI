@@ -385,11 +385,11 @@ async def _fetch_risk_json(team_id: str) -> list[dict]:
     this returns every Employee row. Narrow it once a real Team model exists.
     """
     try:
-        from app.database.session import SessionLocal
-        from app.database.models.user import User
-        from app.database.models.daily_update import DailyUpdate
-        from app.database.models.blocker import Blocker
-        from app.services.risk_engine import RiskEngine
+        from database.session import SessionLocal
+        from database.models.user import User
+        from database.models.daily_update import DailyUpdate
+        from database.models.blocker import Blocker
+        from services.risk_engine import RiskEngine
     except ModuleNotFoundError:
         from database.session import SessionLocal
         from database.models.user import User
@@ -465,11 +465,11 @@ async def _fetch_week_data(team_id: str, week_start: str) -> dict:
     from datetime import timedelta
 
     try:
-        from app.database.session import SessionLocal
-        from app.database.models.user import User
-        from app.database.models.daily_update import DailyUpdate
-        from app.database.models.blocker import Blocker
-        from app.services.risk_engine import RiskEngine
+        from database.session import SessionLocal
+        from database.models.user import User
+        from database.models.daily_update import DailyUpdate
+        from database.models.blocker import Blocker
+        from services.risk_engine import RiskEngine
     except ModuleNotFoundError:
         from database.session import SessionLocal
         from database.models.user import User
@@ -550,8 +550,8 @@ async def _fetch_team_info(team_id: str) -> dict:
     single manager in worklens.db rather than hardcoding a fake name.
     """
     try:
-        from app.database.session import SessionLocal
-        from app.database.models.user import User
+        from database.session import SessionLocal
+        from database.models.user import User
     except ModuleNotFoundError:
         from database.session import SessionLocal
         from database.models.user import User
@@ -567,7 +567,7 @@ async def _fetch_team_info(team_id: str) -> dict:
 
 def _get_summary_repo():
     try:
-        from app.repositories.summary_repository import SummaryRepository
+        from repositories.summary_repository import SummaryRepository
     except ModuleNotFoundError:
         from repositories.summary_repository import SummaryRepository
     return SummaryRepository()

@@ -51,4 +51,3 @@ class RiskRepository:
         for score in old_scores:
             await db.delete(score)
         await db.commit()
-        

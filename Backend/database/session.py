@@ -17,6 +17,9 @@ AsyncSessionLocal = async_sessionmaker(
     class_=AsyncSession
 )
 
+# Backward-compatible alias for older AI modules that still import SessionLocal.
+SessionLocal = AsyncSessionLocal
+
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session

@@ -6,7 +6,6 @@ services:
 
     restart: unless-stopped
 
-    env_file: .env
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -19,10 +18,34 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d worklens"]
+      test: ["executable", "arg","pg_isready -U ${postgresql}"]
       interval: 5s
       timeout: 5s
-      retries: 5  
+      retries: 5
+  backend:
+    build: ./Backend
+    container_name: worklens-backend
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  frontend:
+    build: ./Frontend
+    container_name: worklens-frontend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      API_BASE_URL: http://backend:8000/api/v1
+    ports:
+      - "8501:8501"
+    depends_on:
+      - backend
+    command: streamlit run app.py --server.port 8501 --server.address 0.0.0.0    
 
 volumes:
   postgres_data:

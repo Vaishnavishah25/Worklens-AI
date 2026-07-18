@@ -26,9 +26,9 @@ from ai.prompts import build_chat_messages, build_context_string, build_recommen
 from sqlalchemy import select, func
 
 from database.session import SessionLocal
-from models.user import User
-from models.daily_update import DailyUpdate
-from models.blocker import Blocker
+from database.models.user import User
+from database.models.daily_update import DailyUpdate
+from database.models.blocker import Blocker
 
 
 from ai.llm import stream_chat, complete

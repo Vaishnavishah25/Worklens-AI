@@ -10,7 +10,9 @@ from models.user import User
 from repositories.user_repo import EmployeeRepository
 from auth.password import get_password_hash, verify_password
 from auth.jwt import create_access_token
-
+from sqlalchemy import select
+from database.base import Base
+from database.session import engine
 router = APIRouter(prefix="/auth", tags=["Authentication Layer"])
 
 # --- REQUEST/RESPONSE SCHEMAS ---
@@ -37,7 +39,56 @@ class LoginRequest(BaseModel):
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
 
+# --------------------------------------------------------------------------
+# Database Initialization
+# --------------------------------------------------------------------------
 
+async def init_db():
+    """
+    Creates all database tables if they do not already exist.
+    Called once during FastAPI startup.
+    """
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def seed_default_users():
+    """
+    Seeds default users for demo/development.
+    Safe to call multiple times.
+    """
+    async with AsyncSession(engine) as db:
+
+        repo = EmployeeRepository(db)
+
+        manager = await repo.get_by_email("manager@worklens.ai")
+        if manager:
+            return
+
+        users = [
+            User(
+                name="Maya Chen",
+                email="manager@worklens.ai",
+                password=get_password_hash("manager123"),
+                role="manager",
+            ),
+            User(
+                name="Ravi Mehta",
+                email="mentor@worklens.ai",
+                password=get_password_hash("mentor123"),
+                role="mentor",
+            ),
+            User(
+                name="Priya Shah",
+                email="employee@worklens.ai",
+                password=get_password_hash("employee123"),
+                role="employee",
+            ),
+        ]
+
+        db.add_all(users)
+        await db.commit()
+        
 # --- ENDPOINTS ---
 
 @router.post("/signup", status_code=status.HTTP_201_CREATED)

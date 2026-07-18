@@ -9,8 +9,6 @@ ROOT_ENV = ROOT_DIR/".env"
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str
-    JWT_SECRET: str
     API_BASE_URL:str = "http://localhost:8000/api/v1"
 
     model_config = SettingsConfigDict(

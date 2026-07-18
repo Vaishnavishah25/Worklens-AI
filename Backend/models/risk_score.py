@@ -11,12 +11,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
+    relationship
 )
 
-try:
-    from app.database.base import Base
-except ModuleNotFoundError:
-    from database.base import Base
+from database.base import Base
 
 
 class RiskScore(Base):
@@ -28,7 +26,7 @@ class RiskScore(Base):
     )
 
     employee_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id")
+        ForeignKey("users.id"),index=True
     )
 
     score: Mapped[float] = mapped_column(
@@ -44,3 +42,12 @@ class RiskScore(Base):
         default=datetime.utcnow
     )
 
+    employee = relationship(
+        "User",
+        back_populates="risk_scores"
+    )
+
+    team_id: Mapped[int] = mapped_column(
+        Integer,
+        nullable=True
+    )

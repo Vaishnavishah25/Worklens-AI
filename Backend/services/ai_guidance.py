@@ -16,8 +16,8 @@ from ai.llm import complete
 from vectorstore.faiss_store import faiss_store
 
 from database.session import SessionLocal
-from database.models.daily_update import DailyUpdate
-from database.models.blocker import Blocker
+from models.daily_update import DailyUpdate
+from models.blocker import Blocker
 
 
 

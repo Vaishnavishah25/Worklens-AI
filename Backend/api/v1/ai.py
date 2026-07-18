@@ -386,15 +386,15 @@ async def _fetch_risk_json(team_id: str) -> list[dict]:
     """
     try:
         from database.session import SessionLocal
-        from database.models.user import User
-        from database.models.daily_update import DailyUpdate
-        from database.models.blocker import Blocker
+        from models.user import User
+        from models.daily_update import DailyUpdate
+        from models.blocker import Blocker
         from services.risk_engine import RiskEngine
     except ModuleNotFoundError:
         from database.session import SessionLocal
-        from database.models.user import User
-        from database.models.daily_update import DailyUpdate
-        from database.models.blocker import Blocker
+        from models.user import User
+        from models.daily_update import DailyUpdate
+        from models.blocker import Blocker
         from services.risk_engine import RiskEngine
 
     rows: list[dict] = []
@@ -466,15 +466,15 @@ async def _fetch_week_data(team_id: str, week_start: str) -> dict:
 
     try:
         from database.session import SessionLocal
-        from database.models.user import User
-        from database.models.daily_update import DailyUpdate
-        from database.models.blocker import Blocker
+        from models.user import User
+        from models.daily_update import DailyUpdate
+        from models.blocker import Blocker
         from services.risk_engine import RiskEngine
     except ModuleNotFoundError:
         from database.session import SessionLocal
-        from database.models.user import User
-        from database.models.daily_update import DailyUpdate
-        from database.models.blocker import Blocker
+        from models.user import User
+        from models.daily_update import DailyUpdate
+        from models.blocker import Blocker
         from services.risk_engine import RiskEngine
 
     empty = {"employee_summaries": [], "risk_rows": [], "blocker_stats": {"opened": 0, "resolved": 0, "still_open": 0}}
@@ -551,10 +551,10 @@ async def _fetch_team_info(team_id: str) -> dict:
     """
     try:
         from database.session import SessionLocal
-        from database.models.user import User
+        from models.user import User
     except ModuleNotFoundError:
         from database.session import SessionLocal
-        from database.models.user import User
+        from models.user import User
 
     try:
         with SessionLocal() as session:

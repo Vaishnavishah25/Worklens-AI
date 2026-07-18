@@ -11,12 +11,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
+    relationship
 )
 
-try:
-    from app.database.base import Base
-except ModuleNotFoundError:
-    from database.base import Base
+from database.base import Base
 
 
 class Blocker(Base):
@@ -28,11 +26,15 @@ class Blocker(Base):
     )
 
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id")
+        ForeignKey("users.id"),
+        index=True,
+        nullable=False
     )
-
+    
     update_id: Mapped[int] = mapped_column(
-        ForeignKey("daily_updates.id")
+        ForeignKey("daily_updates.id"),
+        index=True,
+        nullable=True
     )
 
     title: Mapped[str] = mapped_column(
@@ -57,3 +59,12 @@ class Blocker(Base):
         default=datetime.utcnow
     )
 
+    user = relationship(
+        "User",
+        back_populates="blockers"
+    )
+
+    update = relationship(
+        "DailyUpdate",
+        back_populates="blockers"
+    )

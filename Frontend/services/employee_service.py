@@ -1,51 +1,32 @@
 from __future__ import annotations
 
-from services.api_client import APIClient, APIClientError
+from services.api_client import APIClient
 
 
 class EmployeeService:
     @staticmethod
     def today_update():
-        try:
-            return APIClient.get("/updates/today")
-        except APIClientError:
-            return {}
+        return APIClient.get("/updates/today")
 
     @staticmethod
     def submit_update(payload: dict):
-        return APIClient.post("/updates/updates", payload)
+        return APIClient.post("/updates", payload)
 
     @staticmethod
     def tasks(employee_id: int):
-        return APIClient.get("/tasks")
+        return APIClient.get(f"/employees/{employee_id}/tasks")
 
     @staticmethod
     def feedback(employee_id: int):
-        return APIClient.get(f"/feedback/employee/{employee_id}")
+        return APIClient.get(f"/employees/{employee_id}/feedback")
 
     @staticmethod
     def risk(employee_id: int):
-        try:
-            profile = APIClient.get(f"/employees/{employee_id}")
-            return {
-                "score": profile.get("risk_score", profile.get("score", 0)),
-                "label": profile.get("risk", profile.get("label", "Low")),
-                "factors": profile.get("factors", ["No risk factors detected"])
-            }
-        except APIClientError:
-            return {"score": 0, "label": "Low", "factors": ["No risk metrics found"]}
-        
+        return APIClient.get(f"/employees/{employee_id}/risk")
+
     @staticmethod
     def updates(employee_id: int):
-        try:
-            profile = APIClient.get(f"/employees/{employee_id}")
-            if isinstance(profile, list):
-                return profile
-            if isinstance(profile, dict):
-                return profile.get("updates", [])
-            return []
-        except APIClientError:
-            return []
+        return APIClient.get(f"/employees/{employee_id}/updates")
 
     @staticmethod
     def create_blocker(payload: dict):

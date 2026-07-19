@@ -9,7 +9,7 @@ from models.user import User
 
 router = APIRouter(prefix="/updates", tags=["Updates"])
 
-@router.post("/updates", status_code=status.HTTP_201_CREATED)
+@router.post("", status_code=status.HTTP_201_CREATED)
 async def submit_standup(payload: UpdateCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Ingets team updates securely. Provides a risk label based on confidence score and other metrics."""
     try:
@@ -22,3 +22,24 @@ async def submit_standup(payload: UpdateCreate, db: AsyncSession = Depends(get_d
         }
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/updates", status_code=status.HTTP_201_CREATED)
+async def submit_standup_legacy(payload: UpdateCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return await submit_standup(payload, db, current_user)
+
+
+@router.get("/today")
+async def get_today_update(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    service = UpdateService(db)
+    latest = await service.repo.get_latest_updates(current_user.id)
+    if not latest:
+        return None
+    return {
+        "id": latest.id,
+        "work_done": latest.work_done,
+        "next_steps": latest.next_steps,
+        "confidence": latest.confidence_score,
+        "confidence_score": latest.confidence_score,
+        "created_at": latest.created_at.isoformat() if latest.created_at else "",
+    }

@@ -16,13 +16,11 @@ class AuthService:
         except APIClientError as exc:
             return False, exc.user_message
 
-        # 🛡️ Defensive Extraction: Fall back to root payload if "user" key is missing
-        user = payload.get("user", payload)
-        
+        user = payload["user"]
         SessionManager.login(
             user=user,
-            access_token=payload.get("access_token"),
-            refresh_token=payload.get("refresh_token"),
+            access_token=payload["access_token"],
+            refresh_token=payload["refresh_token"],
         )
         return True, "Login successful."
 
@@ -47,13 +45,11 @@ class AuthService:
         except APIClientError as exc:
             return False, exc.user_message
 
-        # 🛡️ Defensive Extraction: Fall back to root response if "user" key is missing
-        user = response.get("user", response)
-        
+        user = response["user"]
         SessionManager.login(
             user=user,
-            access_token=response.get("access_token"),
-            refresh_token=response.get("refresh_token"),
+            access_token=response["access_token"],
+            refresh_token=response["refresh_token"],
         )
         return True, "Account created successfully."
 

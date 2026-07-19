@@ -85,10 +85,7 @@ class SessionManager:
 
         st.session_state.user = user
 
-        if isinstance(user, dict):
-            st.session_state.user_role = user.get("role", "").strip().lower()
-        else:
-            st.session_state.user_role = ""
+        st.session_state.user_role = user["role"]
 
         st.session_state.access_token = access_token
 

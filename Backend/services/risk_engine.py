@@ -69,7 +69,7 @@ class RiskEngine:
         # Fetch active blockers accumulations
         blocker_query = (
             select(func.count(Blocker.id))
-            .where(Blocker.user_id == employee_id, Blocker.status == "OPEN")
+            .where(Blocker.user_id == employee_id, Blocker.status == "open")
         )
         blocker_res = await db.execute(blocker_query)
         open_blockers = blocker_res.scalar() or 0

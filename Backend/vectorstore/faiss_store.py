@@ -19,7 +19,11 @@ import logging
 from pathlib import Path
 
 import numpy as np
-import faiss
+
+try:
+    import faiss
+except ModuleNotFoundError:
+    faiss = None
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +48,23 @@ INDEX_PATH = _app_relative_path("FAISS_INDEX_PATH", APP_DIR / "vectorstore" / "f
 META_PATH = _app_relative_path("FAISS_META_PATH", APP_DIR / "vectorstore" / "faiss_meta.json")
 
 
+class _NumpyIndexFlatIP:
+    def __init__(self, dims: int) -> None:
+        self._vectors = np.empty((0, dims), dtype=np.float32)
+
+    @property
+    def ntotal(self) -> int:
+        return int(self._vectors.shape[0])
+
+    def add(self, matrix: np.ndarray) -> None:
+        self._vectors = np.vstack([self._vectors, matrix.astype(np.float32)])
+
+    def search(self, matrix: np.ndarray, k: int):
+        scores = self._vectors @ matrix[0].astype(np.float32)
+        indices = np.argsort(scores)[::-1][:k]
+        return scores[indices].reshape(1, -1), indices.reshape(1, -1)
+
+
 # ---------------------------------------------------------------------------
 # FAISSStore — singleton
 # ---------------------------------------------------------------------------
@@ -57,7 +78,7 @@ class FAISSStore:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._index: faiss.IndexFlatIP = faiss.IndexFlatIP(EMBEDDING_DIMS)
+        self._index = self._new_index()
         # metadata[i] corresponds to _index vector at position i
         self._metadata: list[dict] = []
         self._load_if_exists()
@@ -132,26 +153,35 @@ class FAISSStore:
         """Persist index + metadata to disk."""
         INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
         with self._lock:
-            faiss.write_index(self._index, str(INDEX_PATH))
+            if faiss is not None:
+                faiss.write_index(self._index, str(INDEX_PATH))
             META_PATH.write_text(json.dumps(self._metadata, default=str))
         logger.info("FAISS index saved — %d vectors", self._index.ntotal)
 
     def _load_if_exists(self) -> None:
         if INDEX_PATH.exists() and META_PATH.exists():
             try:
-                self._index = faiss.read_index(str(INDEX_PATH))
+                if faiss is not None:
+                    self._index = faiss.read_index(str(INDEX_PATH))
                 self._metadata = json.loads(META_PATH.read_text())
                 logger.info(
                     "FAISS index loaded — %d vectors", self._index.ntotal
                 )
             except Exception as exc:          # corrupted file — start fresh
                 logger.warning("Could not load FAISS index: %s", exc)
-                self._index = faiss.IndexFlatIP(EMBEDDING_DIMS)
+                self._index = self._new_index()
                 self._metadata = []
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _new_index():
+        if faiss is not None:
+            return faiss.IndexFlatIP(EMBEDDING_DIMS)
+        logger.warning("faiss is not installed; using in-memory numpy vector search.")
+        return _NumpyIndexFlatIP(EMBEDDING_DIMS)
 
     @staticmethod
     def _ensure_shape(vector: np.ndarray) -> np.ndarray:

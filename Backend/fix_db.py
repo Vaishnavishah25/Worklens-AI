@@ -21,8 +21,32 @@ async def main():
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     
     async with engine.begin() as conn:
-        print("⚡ Injecting missing 'team_id' column into 'risk_scores' table...")
-        # Safe PostgreSQL alteration that appends the column if it's missing
+        print("Synchronizing database columns with current models...")
+        await conn.execute(text("ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS employee_id INTEGER;"))
+        await conn.execute(text("ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS next_steps TEXT;"))
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'daily_updates' AND column_name = 'user_id'
+                ) THEN
+                    UPDATE daily_updates SET employee_id = user_id WHERE employee_id IS NULL;
+                END IF;
+            END $$;
+        """))
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'daily_updates' AND column_name = 'planned_work'
+                ) THEN
+                    UPDATE daily_updates SET next_steps = planned_work WHERE next_steps IS NULL;
+                END IF;
+            END $$;
+        """))
+        await conn.execute(text("UPDATE daily_updates SET next_steps = 'Will be updated in next standup' WHERE next_steps IS NULL;"))
         await conn.execute(text("ALTER TABLE risk_scores ADD COLUMN IF NOT EXISTS team_id INTEGER;"))
         
     print("✅ Database columns successfully synchronized with your Python models!")

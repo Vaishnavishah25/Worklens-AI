@@ -26,4 +26,9 @@ class ManagerService:
 
     @staticmethod
     def ask_ai(question: str):
-        return APIClient.post("/ai/query", {"question": question})
+        return APIClient.post("/ai/query",
+        {
+            "question": question,
+            "team_id": "00000000-0000-0000-0000-000000000001"
+        },
+    )

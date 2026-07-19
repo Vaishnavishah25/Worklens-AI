@@ -61,17 +61,23 @@ def _blocker_frame(rows: list[dict]) -> pd.DataFrame:
     )
 
 
-def _weekly_summary_card() -> None:
+def _weekly_summary_card():
     try:
         summary = ManagerService.weekly_summary()
-    except Exception as exc:
-        _handle_error(exc)
+    except Exception:
+        card(
+            "Weekly Summary",
+            "Weekly summary is not available yet.",
+            badge_html=badge("Info", "info"),
+        )
         return
+
     body = ""
     for section in ["highlights", "concerns", "recommendations"]:
         body += f"{section.title()}\n"
         body += "\n".join(f"- {item}" for item in summary.get(section, []))
         body += "\n\n"
+
     card("Weekly Summary", body, badge_html=badge("AI Generated", "info"))
 
 

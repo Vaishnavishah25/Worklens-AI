@@ -8,23 +8,20 @@ services/summary_service.py's summary_repo parameter.
 
 from __future__ import annotations
 
+from models.weekly_summary import WeeklySummary
+from database.session import SessionLocal
+
 
 class SummaryRepository:
 
     async def upsert_summary(
         self,
-        team_id,
-        week_start_date,
-        summary,
-        no_data,
+        team_id: str,
+        week_start_date: str,
+        summary: str | None,
+        no_data: bool,
         generated_at,
     ) -> None:
-        try:
-            from app.database.session import SessionLocal
-            from app.database.models.weekly_summary import WeeklySummary
-        except ModuleNotFoundError:
-            from database.session import SessionLocal
-            from database.models.weekly_summary import WeeklySummary
 
         with SessionLocal() as session:
             row = (
@@ -35,6 +32,7 @@ class SummaryRepository:
                 )
                 .first()
             )
+
             if row:
                 row.summary = summary
                 row.no_data = no_data
@@ -48,15 +46,14 @@ class SummaryRepository:
                     generated_at=generated_at,
                 )
                 session.add(row)
+
             session.commit()
 
-    async def get_summary(self, team_id, week_start_date) -> dict | None:
-        try:
-            from app.database.session import SessionLocal
-            from app.database.models.weekly_summary import WeeklySummary
-        except ModuleNotFoundError:
-            from database.session import SessionLocal
-            from database.models.weekly_summary import WeeklySummary
+    async def get_summary(
+        self,
+        team_id: str,
+        week_start_date: str,
+    ) -> dict | None:
 
         with SessionLocal() as session:
             row = (
@@ -67,8 +64,10 @@ class SummaryRepository:
                 )
                 .first()
             )
-            if not row:
+
+            if row is None:
                 return None
+
             return {
                 "summary": row.summary,
                 "no_data": row.no_data,

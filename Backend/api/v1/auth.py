@@ -9,8 +9,8 @@ from database.session import get_db
 from models.user import User
 from repositories.user_repo import EmployeeRepository
 from auth.password import get_password_hash, verify_password
-from auth.jwt import create_access_token
-from sqlalchemy import select
+from auth.jwt import create_access_token, decode_access_token
+from sqlalchemy import select, text
 from database.base import Base
 from database.session import engine
 router = APIRouter(prefix="/auth", tags=["Authentication Layer"])
@@ -39,6 +39,24 @@ class LoginRequest(BaseModel):
 class TokenRefreshRequest(BaseModel):
     refresh_token: str
 
+
+def _user_payload(user: User) -> dict:
+    return {
+        "id": user.id,
+        "role": user.role,
+        "name": user.name,
+        "full_name": user.name,
+        "email": user.email,
+    }
+
+
+def _token_claims(user: User) -> dict:
+    return {
+        "sub": user.email,
+        "role": user.role,
+        "user_id": user.id,
+    }
+
 # --------------------------------------------------------------------------
 # Database Initialization
 # --------------------------------------------------------------------------
@@ -50,6 +68,32 @@ async def init_db():
     """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS employee_id INTEGER;"))
+        await conn.execute(text("ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS next_steps TEXT;"))
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'daily_updates' AND column_name = 'user_id'
+                ) THEN
+                    UPDATE daily_updates SET employee_id = user_id WHERE employee_id IS NULL;
+                END IF;
+            END $$;
+        """))
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'daily_updates' AND column_name = 'planned_work'
+                ) THEN
+                    UPDATE daily_updates SET next_steps = planned_work WHERE next_steps IS NULL;
+                END IF;
+            END $$;
+        """))
+        await conn.execute(text("UPDATE daily_updates SET next_steps = 'Will be updated in next standup' WHERE next_steps IS NULL;"))
+        await conn.execute(text("ALTER TABLE risk_scores ADD COLUMN IF NOT EXISTS team_id INTEGER;"))
 
 
 async def seed_default_users():
@@ -122,11 +166,16 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
     # 4. Save entity into PostgreSQL
     created_user = await repo.create_user(new_user)
     
+    token_claims = _token_claims(created_user)
+    access_token = create_access_token(data=token_claims)
+    refresh_token = create_access_token(data=token_claims, expires_delta=timedelta(days=7))
+
     return {
         "message": "User registered successfully",
-        "user_id": created_user.id,
-        "email": created_user.email,
-        "role": created_user.role
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": _user_payload(created_user),
     }
 
 
@@ -145,10 +194,7 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED, 
             detail="Incorrect email or password credentials"
         )
-    token_claims = {
-        "sub": user.email,
-        "role": user.role,
-        "user_id": user.id}
+    token_claims = _token_claims(user)
 
     access_token = create_access_token(data=token_claims)
     refresh_token = create_access_token(data=token_claims, expires_delta=timedelta(days=7))
@@ -157,9 +203,21 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
-        "user": {
-            "id": user.id, 
-            "role": user.role, 
-            "full_name": user.name
-        }
+        "user": _user_payload(user),
     }
+
+
+@router.post("/refresh")
+async def refresh_token(payload: TokenRefreshRequest):
+    token_payload = decode_access_token(payload.refresh_token)
+    if not token_payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    access_token = create_access_token(
+        data={
+            "sub": token_payload.get("sub"),
+            "role": token_payload.get("role"),
+            "user_id": token_payload.get("user_id"),
+        }
+    )
+    return {"access_token": access_token, "token_type": "bearer"}

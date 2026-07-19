@@ -8,13 +8,20 @@ class UpdateRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, work_done: str, confidence_score: int, blocker_text: str = None) -> DailyUpdate:
+    async def create(
+        self,
+        work_done: str,
+        confidence_score: int,
+        blocker_text: str = None,
+        user_id: int = 1,
+        next_steps: str = "Will be updated in next standup",
+    ) -> DailyUpdate:
         # 1. Create and save the base daily update record with all required fields
         db_update = DailyUpdate(
-            user_id=1,           # Hardcoded fallback ID
+            employee_id=user_id,  # Hardcoded fallback ID
             work_done=work_done,
-            planned_work="Will be updated in next standup",  # Required field fallback
-            confidence_score=float(confidence_score)         # Cast to float to match Model type
+            next_steps=next_steps,
+            confidence_score=int(confidence_score)
         )
         self.db.add(db_update)
         await self.db.flush()  # Flush pushes the record to get an ID without committing yet
@@ -23,7 +30,7 @@ class UpdateRepository:
         if blocker_text and blocker_text.strip():
             db_blocker = Blocker(
                 update_id=db_update.id,  # Link them together
-                user_id=1,               # Hardcoded fallback matching blocker schema requirement
+                user_id=user_id,         # Hardcoded fallback matching blocker schema requirement
                 title="System Blocker Flag",
                 description=blocker_text,
                 status="open",           # Default status for MVP

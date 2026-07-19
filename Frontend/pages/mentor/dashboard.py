@@ -10,8 +10,7 @@ from utils.session import SessionManager
 
 
 def _mentor_id() -> int:
-    user = SessionManager.get_user() or {}
-    return int(user.get("id") or user.get("user_id") or user.get("employee_id") or 2)
+    return int((SessionManager.get_user() or {}).get("id", 2))
 
 
 def _handle_error(exc: Exception) -> None:
@@ -37,7 +36,7 @@ def _mentee_frame(rows: list[dict]) -> pd.DataFrame:
                 "Risk Score": row["risk_score"],
                 "Risk": row["risk"],
                 "Open Blockers": row["open_blockers"],
-                "Confidence": row["confidence"],
+                "Confidence": row.get("confidence", "N/A"),
             }
             for row in rows
         ]
@@ -57,11 +56,11 @@ def show_mentor_dashboard() -> None:
     with cols[0]:
         metric_card("Mentees", str(len(mentees)), "Assigned", "info")
     with cols[1]:
-        metric_card("High risk", str(len([m for m in mentees if m['risk'] == 'High'])), "Watch", "warning")
+        metric_card("High risk", str(len([m for m in mentees if m['risk'].upper() == 'High'])), "Watch", "warning")
     with cols[2]:
         metric_card("Open blockers", str(sum(m["open_blockers"] for m in mentees)), "Live", "danger")
     with cols[3]:
-        metric_card("Avg confidence", f"{sum(m['confidence'] for m in mentees) / max(len(mentees), 1):.1f}", "Backend", "success")
+        metric_card("Avg confidence", f"{sum(m.get('confidence', 0) for m in mentees) / max(len(mentees), 1):.1f}", "Backend", "success")
 
     st.subheader("Assigned mentees")
     st.dataframe(_mentee_frame(mentees), hide_index=True, width="stretch")
@@ -128,7 +127,7 @@ def show_mentees_page() -> None:
     with cols[0]:
         metric_card("Risk score", str(risk["score"]), risk["label"], "warning")
     with cols[1]:
-        metric_card("Confidence", str(selected["confidence"]), selected["risk_trend"], "info")
+        metric_card("Confidence", str(selected.get("confidence", "N/A")), selected.get("risk_trend", "N/A"), "info")
     with cols[2]:
         metric_card("Open blockers", str(selected["open_blockers"]), "Live", "danger")
     with cols[3]:

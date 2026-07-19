@@ -1,4 +1,4 @@
-from app.services.risk_engine import RiskEngine
+from services.risk_engine import RiskEngine
 
 result = RiskEngine.calculate(
     confidence_score=5,

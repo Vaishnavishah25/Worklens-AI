@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from services.api_client import APIClient, APIClientError
+from services.api_client import APIClient
 
 
 class MentorService:
@@ -10,25 +10,15 @@ class MentorService:
 
     @staticmethod
     def updates(employee_id: int):
-        try:
-            return APIClient.get(f"/employees/{employee_id}")
-        except APIClientError:
-            return []
+        return APIClient.get(f"/employees/{employee_id}/updates")
 
     @staticmethod
     def risk(employee_id: int):
-        try:
-            profile = APIClient.get(f"/employees/{employee_id}")
-            return {
-                "score": profile.get("risk_score", profile.get("score", 0)),
-                "label": profile.get("risk", profile.get("label", "Low"))
-            }
-        except APIClientError:
-            return {"score": 0, "label": "Low"}
+        return APIClient.get(f"/employees/{employee_id}/risk")
 
     @staticmethod
     def feedback(employee_id: int):
-        return APIClient.get(f"/feedback/employee/{employee_id}")
+        return APIClient.get(f"/employees/{employee_id}/feedback")
 
     @staticmethod
     def send_feedback(payload: dict):

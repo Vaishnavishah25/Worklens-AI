@@ -465,5 +465,5 @@ a.anchor-link {
 
 /* Hide Streamlit chrome */
 footer { visibility: hidden; }
-header { visibility: hidden; }
+header { visibility: visible; }
 #MainMenu { visibility: hidden; }

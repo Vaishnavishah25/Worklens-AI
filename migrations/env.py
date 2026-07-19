@@ -1,23 +1,11 @@
-import os
-import sys
-
 from logging.config import fileConfig
 
-from dotenv import load_dotenv
-load_dotenv()
-
-from sqlalchemy import engine_from_config , create_engine
+from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-BACKEND_DIR = os.path.join(BASE_DIR, "Backend")
-
-sys.path.insert(0, BACKEND_DIR)
-
-from database.base import Base
-from models import *
+from app.database.base import Base
+from app.database.models import *
 from alembic import context
-from core.config import settings
+from app.core.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -40,12 +28,21 @@ target_metadata = Base.metadata
 # ... etc.
 
 
-def run_migrations_offline():
-    raw_url = config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
-    sync_url = raw_url.replace("postgresql+asyncpg://", "postgresql://")
-    
+def run_migrations_offline() -> None:
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well.  By skipping the Engine creation
+    we don't even need a DBAPI to be available.
+
+    Calls to context.execute() here emit the given string to the
+    script output.
+
+    """
+    url = config.get_main_option("sqlalchemy.url",settings.DATABASE_URL)
     context.configure(
-        url=sync_url,
+        url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -55,18 +52,16 @@ def run_migrations_offline():
         context.run_migrations()
 
 
-def run_migrations_online():
-    
-    raw_url = config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
+def run_migrations_online() -> None:
+    """Run migrations in 'online' mode.
 
-    sync_url = settings.DATABASE_URL.replace(
-        "postgresql+asyncpg://","postgresql://"
-    ).replace(
-        "postgresql+psycopg2://","postgresql://"
-    )
-    
-    connectable = create_engine(
-        sync_url,
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    connectable = engine_from_config(
+        config.get_section(config.config_ini_section, {}),
+        prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
 

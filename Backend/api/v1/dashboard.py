@@ -62,10 +62,33 @@ async def get_synchronized_metrics(
             "open_blockers": 0
         })
     
+    high_risk = sum(
+    1 for e in serialized_employees
+    if e["risk"]["label"] == "HIGH"
+)
+
     return {
-        "access_clearance_level": current_user.role,
-        "filtered_by_mentor_scope": effective_mentor_id,
-        "team_health_score": 100.0 if not serialized_employees else 85.2,
-        "update_completion_rate": 0.0 if not serialized_employees else 0.75,
-        "employees": serialized_employees
-    }
+    "kpis": {
+        "team_health": 100 if not serialized_employees else 85,
+        "high_risk": high_risk,
+        "open_blockers": 0,
+        "completion_rate": 75,
+        "alerts": 0
+    },
+    "employees": [
+        {
+    "id": emp.id,
+    "name": e["full_name"],
+    "role": emp.role,
+    "confidence": confidence_score,
+    "last_update": e["last_update_date"],
+    "risk_score": e["risk"]["score"],
+    "risk": e["risk"]["label"],
+    "risk_trend": "Stable",
+    "open_blockers": e["open_blockers"],
+    "overdue_tasks": 0,
+}
+        for e in serialized_employees
+    ],
+    "blockers": []
+}

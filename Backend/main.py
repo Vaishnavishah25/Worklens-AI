@@ -57,8 +57,8 @@ async def lifespan(app: FastAPI):
 
     logger.info("Starting WorkLens AI...")
 
-    init_db()
-    seed_default_users()
+    await init_db()
+    await seed_default_users()
 
     logger.info("Database initialized.")
     logger.info("FAISS index loaded (%d vectors)", faiss_store.total_vectors)

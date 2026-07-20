@@ -89,6 +89,14 @@ async def get_blocker_analytics(
         for row in rows:
             created_at = row[0]
             if created_at:
+                # Handle SQLite returning ISO strings instead of datetime objects
+                if isinstance(created_at, str):
+                    try:
+                        created_at = datetime.fromisoformat(created_at)
+                    except ValueError:
+                        # Skip rows with unparseable dates
+                        continue
+                
                 # Week number of the year (Monday as first day)
                 week_label = f"Week {created_at.strftime('%U')}"
                 week_counts[week_label] += 1

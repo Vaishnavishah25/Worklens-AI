@@ -124,13 +124,10 @@ def show_daily_update() -> None:
         except Exception as exc:
             _handle_error(exc)
 
-    try:
-        update = EmployeeService.today_update()
-        if update:
-            with st.expander("Latest backend update", expanded=True):
-                st.json(update)
-    except Exception as exc:
-        _handle_error(exc)
+    update = EmployeeService.today_update()
+    if update:
+        with st.expander("Latest backend update", expanded=True):
+            st.json(update)
 
 
 def show_my_tasks() -> None:

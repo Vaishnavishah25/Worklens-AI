@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta
+
 import pandas as pd
 import plotly.express as px
 import streamlit as st
@@ -61,9 +63,42 @@ def _blocker_frame(rows: list[dict]) -> pd.DataFrame:
     )
 
 
+def _current_week_start() -> str:
+    """Calculate the ISO date string for the current Monday (start of week)."""
+    today = datetime.now().date()
+    monday = today - timedelta(days=today.weekday())
+    return monday.isoformat()
+
+
+def _display_ai_summary_card(summary: dict | None) -> None:
+    """Display an AI-generated summary in a card format."""
+    if not summary:
+        card(
+            "Weekly Summary",
+            "No summary available for this week.",
+            badge_html=badge("No Data", "warning"),
+        )
+        return
+
+    body = ""
+    for section in ["highlights", "concerns", "recommendations"]:
+        items = summary.get(section, [])
+        if items:
+            body += f"{section.title()}\n"
+            body += "\n".join(f"- {item}" for item in items)
+            body += "\n\n"
+
+    if not body.strip():
+        body = "Summary data is empty."
+
+    card("Weekly Summary", body.strip(), badge_html=badge("AI Generated", "info"))
+
+
 def _weekly_summary_card():
+    """Display cached AI weekly summary in the main dashboard view."""
+    week_start = _current_week_start()
     try:
-        summary = ManagerService.weekly_summary()
+        summary = ManagerService.cached_weekly_summary(week_start)
     except Exception:
         card(
             "Weekly Summary",
@@ -72,13 +107,7 @@ def _weekly_summary_card():
         )
         return
 
-    body = ""
-    for section in ["highlights", "concerns", "recommendations"]:
-        body += f"{section.title()}\n"
-        body += "\n".join(f"- {item}" for item in summary.get(section, []))
-        body += "\n\n"
-
-    card("Weekly Summary", body, badge_html=badge("AI Generated", "info"))
+    _display_ai_summary_card(summary)
 
 
 def show_manager_dashboard() -> None:
@@ -150,7 +179,27 @@ def show_ai_assistant_page() -> None:
 
 def show_weekly_summary_page() -> None:
     section_header("Weekly Summary", "AI-generated highlights, concerns, and recommendations.")
-    _weekly_summary_card()
+    
+    week_start = _current_week_start()
+    
+    # Generate button
+    if st.button("🔄 Generate Summary", type="primary"):
+        with st.spinner("Generating AI summary..."):
+            try:
+                ManagerService.generate_weekly_summary(week_start)
+                st.success("Summary generated successfully!")
+                st.rerun()
+            except Exception as exc:
+                _handle_error(exc)
+    
+    # Display cached summary
+    try:
+        summary = ManagerService.cached_weekly_summary(week_start)
+    except Exception:
+        _display_ai_summary_card(None)
+        return
+    
+    _display_ai_summary_card(summary)
 
 
 def show_analytics_page() -> None:

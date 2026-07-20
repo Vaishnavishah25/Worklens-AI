@@ -8,9 +8,9 @@ class EmployeeService:
     def today_update() -> dict | None:
         try:
             return APIClient.get("/updates/today")
-        except APIClientError as e:
-            if e.status_code == 404 or "not found" in str(e).lower():
-                return None
+        except Exception:
+            # Return None for any failure (API errors, JSON decoding, network issues, etc.)
+            # This ensures callers can safely treat exceptions as "no update exists today"
             return None
 
     @staticmethod

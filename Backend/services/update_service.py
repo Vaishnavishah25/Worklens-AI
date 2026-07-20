@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.daily_update import UpdateCreate
 from repositories.daily_update import UpdateRepository
 from models.blocker import Blocker  
+from services.risk_engine import RiskEngine
 
 class UpdateService:
     def __init__(self, db: AsyncSession):
@@ -10,11 +11,11 @@ class UpdateService:
         self.repo = UpdateRepository(db)
 
     async def process_and_save(self, payload: UpdateCreate, user_id: int = 1):
-        # Calculate risk penalties
-        blocker_penalty = 0.40 if payload.blockers and payload.blockers.strip() else 0.0
-        confidence_penalty = (10 - payload.confidence) * 0.06
-        score = min(1.0, blocker_penalty + confidence_penalty)
-        label = "HIGH" if score > 0.65 else "MEDIUM" if score > 0.35 else "LOW"
+        # # Calculate risk penalties
+        # blocker_penalty = 0.40 if payload.blockers and payload.blockers.strip() else 0.0
+        # confidence_penalty = (10 - payload.confidence) * 0.06
+        # score = min(1.0, blocker_penalty + confidence_penalty)
+        # label = "HIGH" if score > 0.65 else "MEDIUM" if score > 0.35 else "LOW"
 
         # Explicit keywords assignment
         db_update = await self.repo.create_update(
@@ -41,4 +42,5 @@ class UpdateService:
 
         await self.db.commit()
         await self.db.refresh(db_update)
-        return db_update, label
+        risk = await RiskEngine.get_employee_risk(self.db, user_id)
+        return db_update, risk["label"]

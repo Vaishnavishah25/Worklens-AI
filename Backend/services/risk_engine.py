@@ -20,7 +20,7 @@ class RiskEngine:
 
         b_norm = min(open_blockers / 3, 1.0)
 
-        c_norm = (10 - confidence_score) / 9
+        c_norm = (5 - confidence_score) / 4
 
         t_norm = (
             min(overdue_tasks / total_tasks, 1.0)

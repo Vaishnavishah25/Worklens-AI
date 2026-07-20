@@ -66,10 +66,10 @@ class RiskEngine:
         days_no_update = (now - latest_update.created_at).days if latest_update else 7
         confidence = int(latest_update.confidence_score) if latest_update else 5
 
-        # Fetch active blockers accumulations
+        # Fetch active blockers accumulations (case-insensitive status match)
         blocker_query = (
             select(func.count(Blocker.id))
-            .where(Blocker.user_id == employee_id, Blocker.status == "open")
+            .where(Blocker.user_id == employee_id, func.lower(Blocker.status) == "open")
         )
         blocker_res = await db.execute(blocker_query)
         open_blockers = blocker_res.scalar() or 0

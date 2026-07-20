@@ -44,16 +44,28 @@ def show_employee_dashboard() -> None:
         risk = EmployeeService.risk(employee_id)
         tasks = EmployeeService.tasks(employee_id)
         feedback = EmployeeService.feedback(employee_id)
-        today = EmployeeService.today_update()
     except Exception as exc:
         _handle_error(exc)
         return
+
+    # Handle 404 as expected normal state (no update submitted today)
+    today = EmployeeService.today_update()
 
     col_a, col_b = st.columns([2.3, 1], gap="large")
     with col_a:
         hero_card("Good morning", "Your updates, blockers, and confidence signals are visible to your support circle.", "Today")
     with col_b:
-        card("Daily update", "Submitted today" if today else "No update submitted yet", badge_html=badge("Live", "info"))
+        if today:
+            card("Daily update", "Submitted today", badge_html=badge("Live", "success"))
+        else:
+            card("Daily update", "No update submitted yet", badge_html=badge("Pending", "warning"))
+    
+    # Show info message if no update submitted today
+    if today is None:
+        st.info("📅 You haven't submitted your daily update for today yet.")
+        if st.button("📝 Submit Today's Update", type="primary"):
+            st.session_state["navigate_to"] = "daily_update"
+            st.rerun()
 
     cols = st.columns(4)
     with cols[0]:

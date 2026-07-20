@@ -24,3 +24,9 @@ class UpdateRepository:
         query = select(DailyUpdate).where(DailyUpdate.employee_id == employee_id).order_by(DailyUpdate.created_at.desc()).limit(1)
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
+
+    async def get_all_updates(self, employee_id: int) -> List[DailyUpdate]:
+        """Queries the database for all daily updates of a specific employee, ordered by created_at descending."""
+        query = select(DailyUpdate).where(DailyUpdate.employee_id == employee_id).order_by(DailyUpdate.created_at.desc())
+        result = await self.db.execute(query)
+        return result.scalars().all()

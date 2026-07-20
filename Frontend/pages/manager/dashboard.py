@@ -164,17 +164,17 @@ def show_analytics_page() -> None:
     c1, c2 = st.columns(2, gap="large")
     with c1:
         st.subheader("Team health trend")
-        fig = px.line(x=team["labels"], y=team["health"], markers=True, labels={"x": "Day", "y": "Health"})
+        fig = px.line(x=team["labels"], y=team["health_scores"], markers=True, labels={"x": "Day", "y": "Health"})
         fig.update_layout(height=300, showlegend=False)
         style_chart(fig)
         st.plotly_chart(fig, width="stretch")
     with c2:
-        st.subheader("Risk distribution")
-        fig = px.pie(names=list(team["risk_distribution"].keys()), values=list(team["risk_distribution"].values()), hole=.58)
+        st.subheader("Blockers per week")
+        fig = px.bar(pd.DataFrame({"Week": blockers["labels"], "Blockers": blockers["counts"]}), x="Week", y="Blockers")
         fig.update_layout(height=300)
         style_chart(fig)
         st.plotly_chart(fig, width="stretch")
-    st.subheader("Blockers per week")
+    st.subheader("Blockers trend")
     fig = px.bar(pd.DataFrame({"Week": blockers["labels"], "Blockers": blockers["counts"]}), x="Week", y="Blockers")
     style_chart(fig)
     st.plotly_chart(fig, width="stretch")
@@ -188,6 +188,7 @@ def show_alerts_page() -> None:
         _handle_error(exc)
         return
     for item in alerts:
-        card(item["level"], item["message"], badge_html=badge(item["level"], "danger" if item["level"] == "Critical" else "info"))
+        alert_type = item.get("type", item.get("level", "Info"))
+        card(alert_type, item["message"], badge_html=badge(alert_type, "danger" if alert_type == "Critical" else "info"))
     if not alerts:
         empty_state("No alerts", "Prioritized alerts will appear when new risk events are detected.")

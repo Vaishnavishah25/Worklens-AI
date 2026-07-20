@@ -1,21 +1,24 @@
 # api/v1/employees.py
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from typing import List, Optional
 from sqlalchemy.future import select
 from database.session import get_db
 from models.daily_update import DailyUpdate
 from models.user import User
+from models.blocker import Blocker
 from schemas.user import UserResponse
 from api.deps import get_current_user, role_required
 from repositories.feedback_repo import FeedbackRepository
 from repositories.task_repo import TaskRepository
+from repositories.daily_update import UpdateRepository
 from services.risk_engine import RiskEngine
 
 router = APIRouter(prefix="/employees", tags=["Employee Profiles"])
 
 # FIXES ISSUE 4: Explicit query parameter binding for mentor filtering
-@router.get("", response_model=List[UserResponse])
+@router.get("", response_model=List[dict])
 async def list_employees(
     mentor_id: Optional[int] = Query(None),
     risk_label: Optional[str] = Query(None),
@@ -32,7 +35,45 @@ async def list_employees(
 
     result = await db.execute(query)
     employees = result.scalars().all()
-    return employees
+    
+    # Enrich each employee with risk and update telemetry
+    update_repo = UpdateRepository(db)
+    enriched_employees = []
+    
+    for emp in employees:
+        # Fetch risk data
+        risk = await RiskEngine.get_employee_risk(db, emp.id)
+        
+        # Fetch latest update
+        latest = await update_repo.get_latest_updates(emp.id)
+        
+        # Count open blockers (case-insensitive)
+        blockers_result = await db.execute(
+            select(func.count(Blocker.id))
+            .where(Blocker.user_id == emp.id)
+            .where(func.lower(Blocker.status) == "open")
+        )
+        open_blockers = blockers_result.scalar() or 0
+        
+        # Format last update date
+        last_update = "No updates yet"
+        confidence = 0
+        if latest:
+            last_update = latest.created_at.strftime("%Y-%m-%d") if latest.created_at else "No updates yet"
+            confidence = latest.confidence_score
+        
+        enriched_employees.append({
+            "id": emp.id,
+            "name": emp.name,
+            "role": emp.role,
+            "risk_score": risk.get("score", 0),
+            "risk": risk.get("label", "LOW"),
+            "confidence": confidence,
+            "last_update": last_update,
+            "open_blockers": open_blockers
+        })
+    
+    return enriched_employees
 
 @router.get("/{id}", response_model=UserResponse)
 async def get_employee_profile(
@@ -112,12 +153,9 @@ async def get_employee_updates(
     if current_user.role == "employee" and current_user.id != id:
         raise HTTPException(status_code=403, detail="Access denied to requested updates")
 
-    result = await db.execute(
-        select(DailyUpdate)
-        .where(DailyUpdate.employee_id == id)
-        .order_by(DailyUpdate.created_at.desc())
-    )
-    updates = result.scalars().all()
+    from repositories.daily_update import UpdateRepository
+    repo = UpdateRepository(db)
+    updates = await repo.get_all_updates(id)
     return [
         {
             "id": update.id,

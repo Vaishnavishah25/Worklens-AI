@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from services.api_client import APIClient
+from services.api_client import APIClient, APIClientError
 
 
 class EmployeeService:
     @staticmethod
-    def today_update():
-        return APIClient.get("/updates/today")
+    def today_update() -> dict | None:
+        try:
+            return APIClient.get("/updates/today")
+        except APIClientError as e:
+            if e.status_code == 404 or "not found" in str(e).lower():
+                return None
+            return None
 
     @staticmethod
     def submit_update(payload: dict):

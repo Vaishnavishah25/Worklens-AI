@@ -62,7 +62,7 @@ class APIClient:
                 )
             else:
                 SessionManager.logout()
-                st.rerun()
+                raise APIClientError(401, "Session expired. Please sign in again.")
 
         if response.status_code >= 400:
             try:

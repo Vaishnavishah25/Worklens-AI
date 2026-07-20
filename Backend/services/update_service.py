@@ -27,8 +27,13 @@ class UpdateService:
 
         # Handle Blocker logic dynamically
         if payload.blockers and payload.blockers.strip() and payload.severity != "None":
-            sev_mapping = {"1": "LOW", "2": "MEDIUM", "3": "HIGH"}
-            mapped_severity = sev_mapping.get(payload.severity, "MEDIUM")
+            raw_sev = str(payload.severity).lower().strip()
+            sev_mapping = {
+                "none": "LOW", "low": "LOW", "1": "LOW",
+                "medium": "MEDIUM", "2": "MEDIUM",
+                "high": "HIGH", "critical": "HIGH", "3": "HIGH"
+            }
+            mapped_severity = sev_mapping.get(raw_sev, "MEDIUM")
 
             db_blocker = Blocker(
                 update_id=db_update.id,

@@ -1,7 +1,7 @@
 # backend/api/v1/alerts.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/alerts", tags=["System Risk Alerts"])
 class AlertResponse(BaseModel):
     id: int
     employee_id: int
-    team_id: int
+    team_id: Optional[int] = None
     type: str
     message: str
     is_acknowledged: bool

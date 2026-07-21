@@ -48,3 +48,11 @@ class EmployeeService:
     @staticmethod
     def create_blocker(payload: dict) -> dict:
         return APIClient.post("/blockers", payload)
+
+    @staticmethod
+    def submit_update(payload: dict) -> dict:
+        """Submit a daily standup update to the backend."""
+        try:
+            return APIClient.post("/updates", payload)
+        except Exception as e:
+            return {"status": "error", "message": str(e)}

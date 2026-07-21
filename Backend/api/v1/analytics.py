@@ -78,16 +78,25 @@ async def get_blocker_analytics(
         
         # Query all blockers in the time window using standard SQL (no date_trunc)
         result = await db.execute(
-            select(Blocker.created_at)
+            select(Blocker.created_at, Blocker.status)
             .where(Blocker.created_at >= start_date)
         )
         rows = result.all()
         
         # Aggregate by week in Python (cross-database compatible)
         week_counts = defaultdict(int)
+        status_counts = {"open": 0, "resolved": 0, "escalated": 0}
         
         for row in rows:
             created_at = row[0]
+            status = row[1].lower() if row[1] else "open"
+            
+            # Count by status
+            if status in status_counts:
+                status_counts[status] += 1
+            elif status == "open":
+                status_counts["open"] += 1
+            
             if created_at:
                 # Handle SQLite returning ISO strings instead of datetime objects
                 if isinstance(created_at, str):
@@ -113,11 +122,13 @@ async def get_blocker_analytics(
         
         return {
             "labels": labels,
-            "counts": counts
+            "counts": counts,
+            "status_counts": status_counts
         }
     except Exception as e:
         logger.exception(f"Error in get_blocker_analytics: {e}")
         return {
             "labels": [f"Week {i:02d}" for i in range(weeks)],
-            "counts": [0] * weeks
+            "counts": [0] * weeks,
+            "status_counts": {"open": 0, "resolved": 0, "escalated": 0}
         }

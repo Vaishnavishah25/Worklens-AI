@@ -192,6 +192,8 @@ def show_my_risk() -> None:
         _handle_error(exc)
         return
     
+    risk_label = risk.get("label", "LOW")
+    
     left, right = st.columns([0.9, 1.1], gap="large")
     with left:
         card(

@@ -12,6 +12,14 @@ from theme.theme import badge, card, empty_state, metric_card, section_header, s
 from utils.session import SessionManager
 
 
+def _get_team_id() -> str:
+    user = SessionManager.get_user() or {}
+    team_id = user.get("team_id")
+    if not team_id:
+        st.error("No active team assigned to manager context.")
+        st.stop()
+    return str(team_id)
+
 def _handle_error(exc: Exception) -> None:
     if isinstance(exc, APIClientError):
         st.error(exc.user_message)
@@ -97,8 +105,9 @@ def _display_ai_summary_card(summary: dict | None) -> None:
 def _weekly_summary_card():
     """Display cached AI weekly summary in the main dashboard view."""
     week_start = _current_week_start()
+    team_id = _get_team_id()
     try:
-        summary = ManagerService.cached_weekly_summary(week_start)
+        summary = ManagerService.cached_weekly_summary(team_id, week_start)
     except Exception:
         card(
             "Weekly Summary",
@@ -108,6 +117,10 @@ def _weekly_summary_card():
         return
 
     _display_ai_summary_card(summary)
+
+# ---------------------------------------------------------------------------
+# Page Handlers (Imported by app.py)
+# ---------------------------------------------------------------------------
 
 
 def show_manager_dashboard() -> None:
@@ -160,6 +173,7 @@ def show_blockers_page() -> None:
 
 def show_ai_assistant_page() -> None:
     section_header("AI WorkLens Assistant", "Ask cited questions about delivery risk, blockers, and team health.")
+    team_id = _get_team_id()
     history = SessionManager.get_chat()
     for item in history:
         with st.chat_message(item["role"]):
@@ -168,9 +182,19 @@ def show_ai_assistant_page() -> None:
     if prompt:
         SessionManager.add_chat("user", prompt)
         try:
-            response = ManagerService.ask_ai(prompt)
-            answer = response["answer"]
-            citations = "; ".join(f"{c['title']} ({c['source']})" for c in response.get("citations", []))
+            response = ManagerService.ask_ai(prompt, team_id)
+            answer = response.get("answer", "No response received.")
+            # Parse sources with employee and date
+            sources = response.get("sources", [])
+            if sources:
+                source_strs = []
+                for s in sources:
+                    employee = s.get("employee", "Unknown")
+                    date = s.get("date", "N/A")
+                    source_strs.append(f"{employee} ({date})")
+                citations = "; ".join(source_strs)
+            else:
+                citations = "No specific sources"
             SessionManager.add_chat("assistant", f"{answer}\n\nSources: {citations}")
             st.rerun()
         except Exception as exc:
@@ -181,12 +205,13 @@ def show_weekly_summary_page() -> None:
     section_header("Weekly Summary", "AI-generated highlights, concerns, and recommendations.")
     
     week_start = _current_week_start()
+    team_id = _get_team_id()
     
     # Generate button
     if st.button("🔄 Generate Summary", type="primary"):
         with st.spinner("Generating AI summary..."):
             try:
-                ManagerService.generate_weekly_summary(week_start)
+                ManagerService.generate_weekly_summary(team_id, week_start)
                 st.success("Summary generated successfully!")
                 st.rerun()
             except Exception as exc:
@@ -194,7 +219,7 @@ def show_weekly_summary_page() -> None:
     
     # Display cached summary
     try:
-        summary = ManagerService.cached_weekly_summary(week_start)
+        summary = ManagerService.cached_weekly_summary(team_id, week_start)
     except Exception:
         _display_ai_summary_card(None)
         return
@@ -210,23 +235,24 @@ def show_analytics_page() -> None:
     except Exception as exc:
         _handle_error(exc)
         return
+    
     c1, c2 = st.columns(2, gap="large")
     with c1:
         st.subheader("Team health trend")
-        fig = px.line(x=team["labels"], y=team["health_scores"], markers=True, labels={"x": "Day", "y": "Health"})
-        fig.update_layout(height=300, showlegend=False)
-        style_chart(fig)
-        st.plotly_chart(fig, width="stretch")
+        fig1 = px.line(x=team.get("labels", []), y=team.get("health_scores", []), markers=True, labels={"x": "Period", "y": "Health Score"})
+        fig1.update_layout(height=300, showlegend=False)
+        style_chart(fig1)
+        st.plotly_chart(fig1, width="stretch")
     with c2:
-        st.subheader("Blockers per week")
-        fig = px.bar(pd.DataFrame({"Week": blockers["labels"], "Blockers": blockers["counts"]}), x="Week", y="Blockers")
-        fig.update_layout(height=300)
-        style_chart(fig)
-        st.plotly_chart(fig, width="stretch")
-    st.subheader("Blockers trend")
-    fig = px.bar(pd.DataFrame({"Week": blockers["labels"], "Blockers": blockers["counts"]}), x="Week", y="Blockers")
-    style_chart(fig)
-    st.plotly_chart(fig, width="stretch")
+        st.subheader("Blockers distribution")
+        blocker_df = pd.DataFrame({
+            "Status": ["Open", "Resolved", "Escalated"],
+            "Count": [blockers.get("open", 0), blockers.get("resolved", 0), blockers.get("escalated", 0)]
+        })
+        fig2 = px.bar(blocker_df, x="Status", y="Count", color="Status")
+        fig2.update_layout(height=300, showlegend=False)
+        style_chart(fig2)
+        st.plotly_chart(fig2, width="stretch")
 
 
 def show_alerts_page() -> None:

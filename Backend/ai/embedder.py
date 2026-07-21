@@ -60,28 +60,44 @@ async def embed_texts(texts: list[str]) -> list[np.ndarray]:
 
 
 def serialise_daily_update(update: dict) -> str:
+    full_name = update.get("full_name", "Employee")
+    date_val = update.get("date", update.get("created_at", "Today"))
+    work_done = update.get("work_done", "No summary provided")
+    next_steps = update.get("next_steps", "N/A")
+    confidence = update.get("confidence_score", 5)
     blocker_text = update.get("blocker_description") or "None"
+
     return (
-        f"[{update['full_name']}] {update['date']}: "
-        f"{update['work_done']}. "
+        f"[{full_name}] {date_val}: "
+        f"{work_done}. "
         f"Blockers: {blocker_text}. "
-        f"Next: {update['next_steps']}. "
-        f"Confidence: {update['confidence_score']}/10. "
-        f"Mood: {update.get('mood', 'N/A')}/5."
+        f"Next: {next_steps}. "
+        f"Confidence: {confidence}/10. "
     )
 
 
 def serialise_blocker(blocker: dict) -> str:
+    severity = blocker.get("severity", "MEDIUM")
+    full_name = blocker.get("full_name", "Employee")
+    date_val = blocker.get("date", blocker.get("created_at", "Today"))
+    description = blocker.get("description", "No description")
+    status = blocker.get("status", "open")
+
     return (
-        f"BLOCKER [{blocker['severity']}] [{blocker['full_name']}] "
-        f"{blocker['date']}: {blocker['description']}. "
-        f"Status: {blocker['status']}."
+        f"BLOCKER [{severity}] [{full_name}] "
+        f"{date_val}: {description}. "
+        f"Status: {status}."
     )
 
 
 def serialise_feedback(feedback: dict) -> str:
+    fb_type = str(feedback.get("type", "guidance")).upper()
+    from_name = feedback.get("from_name", "Mentor")
+    to_name = feedback.get("to_name", "Mentee")
+    content = feedback.get("content", feedback.get("message", ""))
+
     return (
-        f"FEEDBACK [{feedback['type'].upper()}] "
-        f"from {feedback['from_name']} to {feedback['to_name']}: "
-        f"{feedback['content']}."
+        f"FEEDBACK [{fb_type}] "
+        f"from {from_name} to {to_name}: "
+        f"{content}."
     )

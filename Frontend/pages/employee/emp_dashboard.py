@@ -13,7 +13,12 @@ from utils.session import SessionManager
 
 
 def _user_id() -> int:
-    return int((SessionManager.get_user() or {}).get("id", 3))
+    user = SessionManager.get_user() or {}
+    user_id = user.get("id")
+    if not user_id:
+        st.error("Session expired. Please log in again.")
+        st.stop()
+    return int(user_id)
 
 
 def _handle_error(exc: Exception) -> None:
@@ -28,7 +33,12 @@ def _task_frame(rows: list[dict]) -> pd.DataFrame:
         return pd.DataFrame(columns=["Task", "Due", "Status", "Risk"])
     return pd.DataFrame(
         [
-            {"Task": row["task"], "Due": row["due"], "Status": row["status"], "Risk": row["risk"]}
+            {
+                "Task": row.get("task", row.get("title", "Untitled")),
+                "Due": row.get("due", row.get("due_date", "N/A")),
+                "Status": row.get("status", "todo"),
+                "Risk": row.get("risk", "Low"),
+            }
             for row in rows
         ]
     )
@@ -41,9 +51,9 @@ def show_employee_dashboard() -> None:
     section_header("Employee Workspace", f"Welcome back, {name}. Keep momentum high and surface blockers early.")
 
     try:
-        risk = EmployeeService.risk(employee_id)
-        tasks = EmployeeService.tasks(employee_id)
-        feedback = EmployeeService.feedback(employee_id)
+        risk = EmployeeService.risk(employee_id) or {"score": 0, "label": "LOW", "factors": []}
+        tasks = EmployeeService.tasks(employee_id) or []
+        feedback = EmployeeService.feedback(employee_id) or []
     except Exception as exc:
         _handle_error(exc)
         return
@@ -82,6 +92,7 @@ def show_employee_dashboard() -> None:
         st.subheader("Tasks")
         st.dataframe(_task_frame(tasks), hide_index=True, width="stretch")
     with right:
+        risk_label = risk.get("label", "LOW")
         card("Risk transparency", "\n".join(f"- {factor}" for factor in risk.get("factors", [])), badge_html=badge(risk["label"], risk["label"].lower()))
         st.subheader("Recent feedback")
         for item in feedback[:3]:
@@ -110,7 +121,6 @@ def show_daily_update() -> None:
             st.error("Please describe the blocker or select 'No blockers today'.")
             return
         payload = {
-            "employee_name": (SessionManager.get_user() or {}).get("name", "Employee"),
             "work_done": work_done,
             "blockers": "" if no_blockers else blocker,
             "severity": severity,
@@ -120,14 +130,10 @@ def show_daily_update() -> None:
         try:
             result = EmployeeService.submit_update(payload)
             SessionManager.save_daily_update({**payload, "submitted_at": datetime.now().strftime("%I:%M %p")})
-            st.success(f"Update submitted. Risk assigned: {result.get('risk_assigned', 'Pending')}.")
+            assigned_risk = result.get("risk_assigned", result.get("label", "Success"))
+            st.success(f"Update submitted. Risk status: {assigned_risk}.")
         except Exception as exc:
             _handle_error(exc)
-
-    update = EmployeeService.today_update()
-    if update:
-        with st.expander("Latest backend update", expanded=True):
-            st.json(update)
 
 
 def show_my_tasks() -> None:
@@ -179,25 +185,31 @@ def show_feedback_inbox() -> None:
 def show_my_risk() -> None:
     section_header("My Risk", "Transparent, explainable risk scoring focused on support.")
     try:
-        risk = EmployeeService.risk(_user_id())
-        updates = EmployeeService.updates(_user_id())
+        emp_id = _user_id()
+        risk = EmployeeService.risk(emp_id) or {"score": 0, "label": "LOW", "factors": []}
+        updates = EmployeeService.updates(emp_id) or []
     except Exception as exc:
         _handle_error(exc)
         return
+    
     left, right = st.columns([0.9, 1.1], gap="large")
     with left:
         card(
             "Risk Score",
-            f"{risk['score']} / 100\n" + "\n".join(f"- {factor}" for factor in risk.get("factors", [])),
-            badge_html=badge(risk["label"], risk["label"].lower()),
+            f"{risk.get('score', 0)} / 100\n" + "\n".join(f"- {factor}" for factor in risk.get("factors", [])),
+            badge_html=badge(risk_label, risk_label.lower()),
         )
     with right:
         st.subheader("Confidence Trend")
         if updates:
             frame = pd.DataFrame(updates)
-            fig = px.line(frame, x="created_at", y="confidence", markers=True)
-            fig.update_layout(height=300, showlegend=False)
-            style_chart(fig)
-            st.plotly_chart(fig, width="stretch")
+            y_col = "confidence" if "confidence" in frame.columns else "confidence_score"
+            if y_col in frame.columns and "created_at" in frame.columns:
+                fig = px.line(frame, x="created_at", y=y_col, markers=True, labels={y_col: "Confidence"})
+                fig.update_layout(height=300, showlegend=False)
+                style_chart(fig)
+                st.plotly_chart(fig, width="stretch")
+            else:
+                empty_state("Data pending", "Confidence data will render on your next update.")
         else:
             empty_state("No trend yet", "Submit updates to build a confidence trend.")

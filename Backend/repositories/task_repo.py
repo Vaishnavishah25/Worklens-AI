@@ -47,12 +47,12 @@ class TaskRepository:
 
         total_active_query = select(func.count(Task.id)).where(
             Task.employee_id == employee_id,
-            Task.status != "done"
+            func.lower(Task.status) != "done"
         )
 
         overdue_query = select(func.count(Task.id)).where(
             Task.employee_id == employee_id,
-            Task.status != "done",
+            func.lower(Task.status) != "done",
             Task.due_date < current_today
         )
 

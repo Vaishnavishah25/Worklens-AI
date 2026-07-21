@@ -1,6 +1,6 @@
 # backend/tasks/summary_gen.py
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from models.task import Task
 from models.blocker import Blocker
 from typing import Dict, Any
@@ -10,12 +10,22 @@ async def generate_weekly_performance_summary(db: AsyncSession, employee_id: int
     Compiles relational table records into structured performance summaries 
     for review by team leads.
     """
-    # Gather completed work units
-    task_res = await db.execute(select(Task).where(Task.employee_id == employee_id, Task.status == "done"))
+    # Gather completed work units (case-insensitive status)
+    task_res = await db.execute(
+        select(Task).where(
+            Task.employee_id == employee_id,
+            func.lower(Task.status) == "done"
+        )
+    )
     done_tasks = task_res.scalars().all()
 
-    # Gather remaining obstacles
-    blocker_res = await db.execute(select(Blocker).where(Blocker.user_id == employee_id, Blocker.status == "open"))
+    # Gather remaining obstacles (case-insensitive status)
+    blocker_res = await db.execute(
+        select(Blocker).where(
+            Blocker.user_id == employee_id,
+            func.lower(Blocker.status) == "open"
+        )
+    )
     open_blockers = blocker_res.scalars().all()
 
     summary_text = f"Completed {len(done_tasks)} operational development objectives this cycle. "

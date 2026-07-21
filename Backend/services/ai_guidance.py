@@ -74,7 +74,7 @@ async def generate_employee_guidance(
     with SessionLocal() as session:
         updates = (
             session.query(DailyUpdate)
-            .filter(DailyUpdate.user_id == int(employee_id))
+            .filter(DailyUpdate.employee_id == int(employee_id))
             .order_by(DailyUpdate.created_at.desc())
             .limit(6)
             .all()

@@ -60,154 +60,64 @@ class SessionManager:
 
     @classmethod
     def initialize(cls):
-
-        """
-        Initialize default values.
-        """
-
         for key, value in cls.DEFAULTS.items():
-
             if key not in st.session_state:
-
                 st.session_state[key] = value
-
-    # -------------------------------------------------
 
     @classmethod
     def login(cls, user: dict, access_token: str | None = None, refresh_token: str | None = None):
-
-        """
-        Store user information.
-
-        """
-
         st.session_state.authenticated = True
-
         st.session_state.user = user
-
-        st.session_state.user_role = user["role"]
-
+        st.session_state.user_role = str(user.get("role", "")).lower()
         st.session_state.access_token = access_token
-
         st.session_state.refresh_token = refresh_token
-
-    # -------------------------------------------------
 
     @classmethod
     def logout(cls):
-
-        """
-        Clear user session.
-        """
-
-        for key in cls.DEFAULTS:
-
-            st.session_state[key] = cls.DEFAULTS[key]
-
-    # -------------------------------------------------
+        for key, val in cls.DEFAULTS.items():
+            st.session_state[key] = val
 
     @classmethod
-    def is_authenticated(cls):
-
-        return st.session_state.authenticated
-
-    # -------------------------------------------------
+    def is_authenticated(cls) -> bool:
+        return bool(st.session_state.get("authenticated", False))
 
     @classmethod
-    def get_user(cls):
-
-        return st.session_state.user
-
-    # -------------------------------------------------
+    def get_user(cls) -> dict | None:
+        return st.session_state.get("user")
 
     @classmethod
-    def get_role(cls):
-
-        return st.session_state.user_role
-
-    # -------------------------------------------------
+    def get_role(cls) -> str | None:
+        return st.session_state.get("user_role")
 
     @classmethod
-    def get_page(cls):
-
-        return st.session_state.current_page
-
-    # -------------------------------------------------
+    def get_page(cls) -> str:
+        return st.session_state.get("current_page", "Dashboard")
 
     @classmethod
     def set_page(cls, page: str):
-
         st.session_state.current_page = page
-
-    # -------------------------------------------------
-
-    @classmethod
-    def get_theme(cls):
-
-        return st.session_state.theme
-
-    # -------------------------------------------------
-
-    @classmethod
-    def set_theme(cls, theme: str):
-
-        st.session_state.theme = theme
-
-    # -------------------------------------------------
-
-    @classmethod
-    def notifications(cls):
-
-        return st.session_state.notifications
-
-    # -------------------------------------------------
-
-    @classmethod
-    def set_notifications(cls, value: int):
-
-        st.session_state.notifications = value
-
-    # -------------------------------------------------
 
     @classmethod
     def add_chat(cls, role: str, message: str):
-
-        st.session_state.chat_history.append(
-
-            {
-                "role": role,
-                "message": message,
-            }
-
-        )
-
-    # -------------------------------------------------
+        if "chat_history" not in st.session_state:
+            st.session_state.chat_history = []
+        st.session_state.chat_history.append({"role": role, "message": message})
 
     @classmethod
-    def get_chat(cls):
-
-        return st.session_state.chat_history
-
-    # -------------------------------------------------
+    def get_chat(cls) -> list[dict]:
+        return st.session_state.get("chat_history", [])
 
     @classmethod
     def clear_chat(cls):
-
         st.session_state.chat_history = []
-
-    # -------------------------------------------------
 
     @classmethod
     def save_daily_update(cls, data: dict):
-
         st.session_state.submitted_update = data
 
-    # -------------------------------------------------
-
     @classmethod
-    def get_daily_update(cls):
-
-        return st.session_state.submitted_update
+    def get_daily_update(cls) -> dict | None:
+        return st.session_state.get("submitted_update")
 
 
 def initialize_session() -> None:

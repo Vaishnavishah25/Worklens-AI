@@ -5,6 +5,8 @@ from models.blocker import Blocker
 from models.risk_score import RiskScore
 from models.task import Task
 from models.weekly_summary import WeeklySummary
+from models.team import Team
+from models.feedback import Feedback
 
 __all__ = [
     "Base",
@@ -14,4 +16,6 @@ __all__ = [
     "RiskScore",
     "Task",
     "WeeklySummary",
+    "Feedback",
+    "Team"
 ]

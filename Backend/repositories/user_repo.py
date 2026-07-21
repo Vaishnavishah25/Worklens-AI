@@ -9,6 +9,10 @@ class EmployeeRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    async def get_by_id(self, user_id: int) -> Optional[User]:
+        result = await self.db.execute(select(User).where(User.id == user_id))
+        return result.scalar_one_or_none()
+
     async def get_by_email(self, email: str) -> Optional[User]:
         result = await self.db.execute(select(User).where(User.email == email))
         return result.scalar_one_or_none()
@@ -28,5 +32,10 @@ class EmployeeRepository:
             # If manager views globally, fetch all team contributors
             query = query.where(User.role == "employee")
             
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
+    async def get_employees_by_team(self, team_id: int) -> List[User]:
+        query = select(User).where(User.team_id == team_id)
         result = await self.db.execute(query)
         return list(result.scalars().all())

@@ -1,3 +1,5 @@
+# frontend/app.py
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -6,7 +8,7 @@ from pathlib import Path
 import streamlit as st
 
 from auth.login import show_login
-from pages.employee.dashboard import (
+from pages.employee.emp_dashboard import (
     show_daily_update,
     show_employee_dashboard,
     show_feedback_inbox,
@@ -14,7 +16,7 @@ from pages.employee.dashboard import (
     show_my_tasks,
     show_progress_timeline,
 )
-from pages.manager.dashboard import (
+from pages.manager.mgm_dashboard import (
     show_ai_assistant_page,
     show_alerts_page,
     show_analytics_page,
@@ -23,7 +25,7 @@ from pages.manager.dashboard import (
     show_team_risk_page,
     show_weekly_summary_page,
 )
-from pages.mentor.dashboard import (
+from pages.mentor.mentor_dashboard import (
     show_feedback_composer_page,
     show_feedback_history_page,
     show_mentees_page,
@@ -70,6 +72,7 @@ ROLE_LABELS = {
     "manager": "Manager",
 }
 
+
 def normalize_role(role: str | None) -> str:
     role = (role or "").strip().lower()
     return role if role in ROUTES else ""
@@ -87,23 +90,6 @@ def current_page_for(role: str) -> str:
     return page
 
 
-def hide_streamlit_sidebar():
-    pass
-    #st.markdown(
-      #  """
-     #   <style>
-     #   [data-testid="stSidebar"], [data-testid="collapsedControl"] {
-     #       display: none;
-      #  }
-      #  .block-container {
-       #     max-width: 1280px;
-     #   }
-      #  </style>
-      #  """,
-      #  unsafe_allow_html=True,
-   # )
-
-
 def render_logo_header() -> None:
     if LOGO_PATH.exists():
         logo_col, title_col = st.columns([0.12, 1.4])
@@ -118,7 +104,7 @@ def render_logo_header() -> None:
 
 def render_role_badge(role: str) -> None:
     st.sidebar.markdown(
-        f'<span class="wl-badge wl-badge-primary">{ROLE_LABELS[role]}</span>',
+        f'<span class="wl-badge wl-badge-primary">{ROLE_LABELS.get(role, role.title())}</span>',
         unsafe_allow_html=True,
     )
 
@@ -141,7 +127,7 @@ def render_sidebar(role: str) -> None:
     selected_page = st.sidebar.radio(
         "Navigation",
         nav_items,
-        index=nav_items.index(current_page),
+        index=nav_items.index(current_page) if current_page in nav_items else 0,
         key=f"sidebar_nav_{role}",
         label_visibility="collapsed",
     )
@@ -151,7 +137,7 @@ def render_sidebar(role: str) -> None:
 
     st.sidebar.divider()
     st.sidebar.markdown(f"**{user.get('name', 'User')}**")
-    st.sidebar.caption(user.get("designation", "Team Member"))
+    st.sidebar.caption(user.get("role", "Team Member").title())
 
     if st.sidebar.button("Logout", width="stretch", key="logout_btn"):
         SessionManager.logout()
@@ -172,7 +158,7 @@ def render_route(role: str) -> None:
 def render_authenticated_app() -> None:
     role = normalize_role(SessionManager.get_role())
     if not role:
-        st.error("Your session has an invalid role. Please sign in again.")
+        st.error("Your session has an invalid or unassigned role. Please sign in again.")
         if st.button("Return to login", type="primary"):
             SessionManager.logout()
             st.rerun()
@@ -194,7 +180,6 @@ def main() -> None:
     load_theme()
 
     if not SessionManager.is_authenticated():
-        hide_streamlit_sidebar()
         render_logo_header()
         show_login()
         return

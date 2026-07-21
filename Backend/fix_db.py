@@ -17,40 +17,28 @@ from sqlalchemy import text
 from core.config import settings
 
 async def main():
-    print("🔧 Opening direct structural connection to database...")
+    print("🔧 Connecting to database to sync schema columns...")
     engine = create_async_engine(settings.DATABASE_URL, echo=False)
     
     async with engine.begin() as conn:
-        print("Synchronizing database columns with current models...")
-        await conn.execute(text("ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS employee_id INTEGER;"))
-        await conn.execute(text("ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS next_steps TEXT;"))
-        await conn.execute(text("""
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name = 'daily_updates' AND column_name = 'user_id'
-                ) THEN
-                    UPDATE daily_updates SET employee_id = user_id WHERE employee_id IS NULL;
-                END IF;
-            END $$;
-        """))
-        await conn.execute(text("""
-            DO $$
-            BEGIN
-                IF EXISTS (
-                    SELECT 1 FROM information_schema.columns
-                    WHERE table_name = 'daily_updates' AND column_name = 'planned_work'
-                ) THEN
-                    UPDATE daily_updates SET next_steps = planned_work WHERE next_steps IS NULL;
-                END IF;
-            END $$;
-        """))
-        await conn.execute(text("UPDATE daily_updates SET next_steps = 'Will be updated in next standup' WHERE next_steps IS NULL;"))
-        await conn.execute(text("ALTER TABLE risk_scores ADD COLUMN IF NOT EXISTS team_id INTEGER;"))
+        print("Ensuring columns exist across operational tables...")
+        # Add required missing columns if they do not exist
+        statements = [
+            "ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS employee_id INTEGER;",
+            "ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS next_steps TEXT;",
+            "ALTER TABLE risk_scores ADD COLUMN IF NOT EXISTS team_id INTEGER;",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS team_id INTEGER;",
+        ]
         
-    print("✅ Database columns successfully synchronized with your Python models!")
+        for stmt in statements:
+            try:
+                await conn.execute(text(stmt))
+            except Exception as exc:
+                print(f"Notice: {stmt.split()[5]} update handled or non-critical: {exc}")
+
+    print("✅ Database schema synchronization completed!")
     await engine.dispose()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

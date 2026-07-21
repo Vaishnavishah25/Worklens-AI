@@ -1,15 +1,19 @@
+# backend/models/user.py
+
+from __future__ import annotations
+
 from sqlalchemy import (
     Integer,
+    Column,
     String,
-    ForeignKey
+    ForeignKey,
+    DateTime
 )
-
 from sqlalchemy.orm import (
     Mapped,
     mapped_column,
     relationship
 )
-
 from database.base import Base
 
 
@@ -39,6 +43,12 @@ class User(Base):
         String(50)
     )
 
+    team_id: Mapped[int | None] = mapped_column(
+        Integer,
+        ForeignKey("teams.id"),
+        nullable=True
+    )
+
     manager_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id"),
         nullable=True
@@ -46,13 +56,21 @@ class User(Base):
 
     manager = relationship(
         "User",
-        remote_side=[id]
+        remote_side=[id],
+        foreign_keys=[manager_id]
+    )
+
+    team = relationship(
+        "Team",
+        back_populates="members",
+        foreign_keys=[team_id]
     )
 
     updates = relationship(
         "DailyUpdate",
         back_populates="user"
     )
+    
     blockers = relationship(
         "Blocker",
         back_populates="user"
@@ -60,13 +78,14 @@ class User(Base):
 
     risk_scores = relationship(
         "RiskScore",
-    back_populates="employee"
-)
+        back_populates="employee"
+    )
+    
     tasks = relationship(
         "Task",
-    back_populates="user",
-    cascade="all, delete-orphan"
-)
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
     
     feedback_given = relationship(
         "Feedback",

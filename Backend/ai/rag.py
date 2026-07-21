@@ -71,7 +71,8 @@ async def retrieve_context(
 
     try:
         with SessionLocal() as session:
-            users = session.execute(select(User)).scalars().all()
+            users_res = await session.execute(select(User))
+            users = users_res.scalars().all()
             question_l = question.lower()
             matched = [u for u in users if u.name and u.name.lower().split()[0] in question_l]
 
@@ -79,34 +80,27 @@ async def retrieve_context(
             # ground the answer in recent activity across the whole roster
             # instead of falling through to the (currently stale) FAISS index.
             if not matched:
-                matched = [u for u in users if u.role == "Employee"]
+                matched = [u for u in users if str(u.role).lower() == "employee"]
 
             if matched:
                 matched_ids = [int(u.id) for u in matched]
 
                 # Recent daily updates per matched employee (up to 4 each)
-                updates = (
-                    session.execute(
-                        select(DailyUpdate)
-                        .where(DailyUpdate.user_id.in_(matched_ids))
-                        .order_by(DailyUpdate.created_at.desc())
-                        .limit(16)
-                    )
-                    .scalars()
-                    .all()
+                updates_res = await session.execute(
+                    select(DailyUpdate)
+                    .where(DailyUpdate.employee_id.in_(matched_ids))
+                    .order_by(DailyUpdate.created_at.desc())
+                    .limit(16)
                 )
-
-                # Open blockers per matched employee
-                blockers = (
-                    session.execute(
-                        select(Blocker)
-                        .where(Blocker.user_id.in_(matched_ids), Blocker.status == "open")
-                        .order_by(Blocker.created_at.desc())
-                        .limit(32)
-                    )
-                    .scalars()
-                    .all()
+                updates = updates_res.scalars().all()
+                    
+                blockers_res = await session.execute(
+                    select(Blocker)
+                    .where(Blocker.user_id.in_(matched_ids), func.lower(Blocker.status) == "open")
+                    .order_by(Blocker.created_at.desc())
+                    .limit(32)
                 )
+                blockers = blockers_res.scalars().all()
 
                 blocker_by_emp: dict[int, list[Blocker]] = {}
                 for b in blockers:
@@ -166,7 +160,7 @@ async def retrieve_context(
 
     # Step 3 — FAISS search (fallback)
     query_vec = await embed_text(question)
-    raw_results = faiss_store.search(query_vec, k=FAISS_OVERFETCH_K)
+    raw_results = faiss_store.search(query_vec, k=FAISS_OVERFETCH_K, team_id=team_id)
 
     # Step 4 — filter to this team only (when FAISS metadata has team_id)
     filtered = [r for r in raw_results if r.get("team_id") == str(team_id)]
@@ -185,7 +179,7 @@ async def retrieve_context(
     # Hydrate means confirm text exists; fall back to doc_id if somehow missing.
     for chunk in top_chunks:
         if "text" not in chunk:
-            chunk["text"] = f"[{chunk['doc_type']}] {chunk['doc_id']}"
+            chunk["text"] = f"[{chunk.get('doc_type', 'doc')}] {chunk.get('doc_id', '')}"
 
     # Step 6 — build context string
     context_text = build_context_string(top_chunks)
@@ -205,6 +199,8 @@ def _maybe_answer_profile_question(question: str, matched: list) -> str | None:
     u = matched[0]
     title = f" ({u.title})" if getattr(u, "title", None) else ""
     return f"{u.name} is a {u.role}{title}."
+
+
 async def stream_rag_response(
     question: str,
     team_id: str,
@@ -218,8 +214,9 @@ async def stream_rag_response(
         {"type": "done",  "sources": [...]} — final event with citations
     """
     try:
-        with SessionLocal() as session:
-            users = session.execute(select(User)).scalars().all()
+        async with SessionLocal() as session:
+            users_res = await session.execute(select(User))
+            users = users_res.scalars().all()
             matched = [u for u in users if u.name and u.name.lower().split()[0] in question.lower()]
         direct = _maybe_answer_profile_question(question, matched)
         if direct:

@@ -107,8 +107,7 @@ def build_summary_messages(
         blocker_stats:       {opened, resolved, still_open} counts.
     """
     emp_block = "\n".join(
-        f"- {e['full_name']}: {e['update_count']} updates. "
-        f"Conf trend: {e['conf_start']}→{e['conf_end']}. "
+        f"- {e.get('full_name', 'Employee')}: {e.get('update_count', 0)} updates. Conf trend: {e.get('conf_start', 'N/A')}→{e.get('conf_end', 'N/A')}"
         f"Open blockers: {e['open_blockers']}. "
         f"Notes: {e.get('notes', 'None')}."
         for e in employee_summaries

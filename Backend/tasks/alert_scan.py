@@ -1,9 +1,11 @@
 # backend/tasks/alert_scan.py
+from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from models.risk_score import RiskScore
 from services.alert_service import Alert
-from datetime import datetime, timezone
+
+from models.user import User
 
 async def scan_and_generate_risk_alerts(db: AsyncSession):
     """
@@ -26,16 +28,17 @@ async def scan_and_generate_risk_alerts(db: AsyncSession):
         existing_alert = alert_res.scalar_one_or_none()
 
         if not existing_alert:
-            # Dynamically fetch the employee's name for contextual clarity
-            from models.user import User
+            # Dynamically fetch user profile and team ID
             user_res = await db.execute(select(User).where(User.id == record.employee_id))
             user_obj = user_res.scalar_one_or_none()
+            
             emp_name = user_obj.name if user_obj else f"User ID {record.employee_id}"
+            dynamic_team_id = record.team_id if record.team_id is not None else (user_obj.team_id if user_obj else None)
 
-            # Append the high priority flag directly into the operations engine
+            # Append alert directly with dynamic context
             new_alert = Alert(
                 employee_id=record.employee_id,
-                team_id=record.team_id,
+                team_id=dynamic_team_id,
                 type="high_risk_anomaly",
                 message=f"Critical Alert: {emp_name}'s overall health index has crossed into the HIGH tier. Immediate intervention advised.",
                 is_acknowledged=False

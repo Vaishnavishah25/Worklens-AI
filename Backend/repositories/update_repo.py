@@ -3,18 +3,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from models.daily_update import DailyUpdate
 from models.blocker import Blocker
+from typing import Optional, List
 
 class UpdateRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(
+    async def create_update(
         self,
+        user_id: str,
         work_done: str,
+        next_steps: str,
         confidence_score: int,
         blocker_text: str = None,
-        user_id: int = 1,
-        next_steps: str = "Will be updated in next standup",
     ) -> DailyUpdate:
         # 1. Create and save the base daily update record with all required fields
         db_update = DailyUpdate(
@@ -43,8 +44,24 @@ class UpdateRepository:
         await self.db.refresh(db_update)
         return db_update
 
-    async def get_latest_updates(self, limit: int = 10):
-        result = await self.db.execute(
-            select(DailyUpdate).order_by(DailyUpdate.id.desc()).limit(limit)
+    async def get_latest_updates(
+        self,
+        employee_id: Optional[int] = None,
+        limit: int = 10
+    ) -> List[DailyUpdate]:
+        query = select(DailyUpdate)
+        if employee_id is not None:
+            query = query.where(DailyUpdate.employee_id == employee_id)
+        
+        query = query.order_by(DailyUpdate.created_at.desc()).limit(limit)
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+
+    async def get_all_updates(self, employee_id: int) -> List[DailyUpdate]:
+        query = (
+            select(DailyUpdate)
+            .where(DailyUpdate.employee_id == employee_id)
+            .order_by(DailyUpdate.created_at.desc())
         )
-        return result.scalars().all()
+        result = await self.db.execute(query)
+        return list(result.scalars().all())

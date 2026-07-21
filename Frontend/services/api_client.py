@@ -40,11 +40,12 @@ class APIClient:
         return headers
 
     @classmethod
-    def _request(cls, method, endpoint, payload: None = None, include_auth= True, **kwargs):
+    def _request(cls, method: str, endpoint: str, payload: dict | None = None, include_auth: bool = True, **kwargs) -> Any:
+        url = f"{cls.BASE_URL}{endpoint}"
         try:
             response = requests.request(
                 method,
-                f"{cls.BASE_URL}{endpoint}",
+                url,
                 headers=cls._headers(include_auth),
                 json=payload,
                 timeout=cls.TIMEOUT,
@@ -56,9 +57,12 @@ class APIClient:
         if response.status_code == 401 and include_auth:
             if cls._try_refresh():
                 response = requests.request(
-                    method,f"{cls.BASE_URL}{endpoint}",
+                    method,
+                    url,
                     headers=cls._headers(include_auth=True),
-                    json=payload,timeout=cls.TIMEOUT,**kwargs
+                    json=payload,
+                    timeout=cls.TIMEOUT,
+                    **kwargs,
                 )
             else:
                 SessionManager.logout()
@@ -71,7 +75,7 @@ class APIClient:
                 detail = response.text
             raise APIClientError(response.status_code, str(detail))
 
-        if not response.text:
+        if not response.text or response.status_code == 204:
             return None
         return response.json()
     

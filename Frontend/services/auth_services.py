@@ -19,8 +19,8 @@ class AuthService:
         user = payload["user"]
         SessionManager.login(
             user=user,
-            access_token=payload["access_token"],
-            refresh_token=payload["refresh_token"],
+            access_token=payload.get("access_token"),
+            refresh_token=payload.get("refresh_token"),
         )
         return True, "Login successful."
 
@@ -45,7 +45,7 @@ class AuthService:
         except APIClientError as exc:
             return False, exc.user_message
 
-        user = response["user"]
+        user = response.get("user", {})
         SessionManager.login(
             user=user,
             access_token=response["access_token"],

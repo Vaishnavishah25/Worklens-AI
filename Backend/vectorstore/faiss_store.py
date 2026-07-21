@@ -17,6 +17,7 @@ import json
 import threading
 import logging
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 
@@ -118,6 +119,7 @@ class FAISSStore:
         self,
         query_vector: np.ndarray,
         k: int = 20,
+        team_id: Optional[str | int] = None
     ) -> list[dict]:
         """
         Return top-k results as a list of metadata dicts enriched with a
@@ -130,18 +132,25 @@ class FAISSStore:
             return []
 
         vec = self._ensure_shape(query_vector)
-        k = min(k, self._index.ntotal)
+        fetch_k = min(k * 3 if team_id else k, self._index.ntotal)
 
         with self._lock:
-            distances, indices = self._index.search(vec, k)
+            distances, indices = self._index.search(vec, fetch_k)
 
         results: list[dict] = []
         for dist, idx in zip(distances[0], indices[0]):
             if idx == -1:
                 continue
             meta = dict(self._metadata[idx])   # shallow copy
+
+            if team_id is not None and str(met.get("team_id")) != str(team_id):
+                continue
+
             meta["similarity"] = float(dist)   # inner product = cosine sim
             results.append(meta)
+
+            if len(results) >= k:
+                break
 
         return results
 

@@ -14,25 +14,37 @@ class EmployeeService:
             return None
 
     @staticmethod
-    def submit_update(payload: dict):
-        return APIClient.post("/updates", payload)
+    def tasks(employee_id: int) -> list[dict]:
+        try:
+            res = APIClient.get(f"/employees/{employee_id}/tasks")
+            return res if isinstance(res, list) else []
+        except Exception:
+            return []
 
     @staticmethod
-    def tasks(employee_id: int):
-        return APIClient.get(f"/employees/{employee_id}/tasks")
+    def feedback(employee_id: int) -> list[dict]:
+        try:
+            res = APIClient.get(f"/employees/{employee_id}/feedback")
+            return res if isinstance(res, list) else []
+        except Exception:
+            return []
 
     @staticmethod
-    def feedback(employee_id: int):
-        return APIClient.get(f"/employees/{employee_id}/feedback")
+    def risk(employee_id: int) -> dict:
+        try:
+            res = APIClient.get(f"/employees/{employee_id}/risk")
+            return res if isinstance(res, dict) else {"score": 0, "label": "LOW", "factors": []}
+        except Exception:
+            return {"score": 0, "label": "LOW", "factors": ["No risk data available"]}
 
     @staticmethod
-    def risk(employee_id: int):
-        return APIClient.get(f"/employees/{employee_id}/risk")
+    def updates(employee_id: int) -> list[dict]:
+        try:
+            res = APIClient.get(f"/employees/{employee_id}/updates")
+            return res if isinstance(res, list) else []
+        except Exception:
+            return []
 
     @staticmethod
-    def updates(employee_id: int):
-        return APIClient.get(f"/employees/{employee_id}/updates")
-
-    @staticmethod
-    def create_blocker(payload: dict):
+    def create_blocker(payload: dict) -> dict:
         return APIClient.post("/blockers", payload)

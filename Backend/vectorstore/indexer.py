@@ -41,19 +41,19 @@ async def index_update(db_update: dict) -> str | None:
 
     Returns the FAISS metadata doc_id on success, None on failure.
     """
-    doc_id = f"update_{db_update['id']}"
+    doc_id = f"update_{db_update.get('id')}"
     try:
         text = serialise_daily_update(db_update)
         vector = await embed_text(text)
 
         metadata = {
             "doc_id": doc_id,
-            "employee_id": str(db_update["employee_id"]),
-            "team_id": str(db_update["team_id"]),
-            "full_name": db_update["full_name"],
+            "employee_id": str(db_update.get("employee_id", "")),
+            "team_id": str(db_update.get("team_id", "")),
+            "full_name": db_update.get("full_name", ""),
             "date": str(db_update.get("date", date.today())),
             "doc_type": "daily_update",
-            "text": text,   # stored so hydration doesn't need a DB round-trip
+            "text": text,
         }
 
         faiss_store.add(vector, metadata)
@@ -61,8 +61,6 @@ async def index_update(db_update: dict) -> str | None:
         return doc_id
 
     except Exception as exc:
-        import traceback
-        traceback.print_exc()
         logger.error("Failed to index update %s: %s", doc_id, exc)
         return None
 
@@ -76,19 +74,19 @@ async def index_blocker(db_blocker: dict) -> str | None:
         date (created_at date), description,
         severity (1-3), status
     """
-    doc_id = f"blocker_{db_blocker['id']}"
+    doc_id = f"blocker_{db_blocker.get('id')}"
     try:
         text = serialise_blocker(db_blocker)
         vector = await embed_text(text)
 
         metadata = {
             "doc_id": doc_id,
-            "employee_id": str(db_blocker["employee_id"]),
-            "team_id": str(db_blocker["team_id"]),
-            "full_name": db_blocker["full_name"],
+            "employee_id": str(db_blocker.get("employee_id", "")),
+            "team_id": str(db_blocker.get("team_id", "")),
+            "full_name": db_blocker.get("full_name", ""),
             "date": str(db_blocker.get("date", date.today())),
             "doc_type": "blocker",
-            "severity": db_blocker.get("severity", 1),
+            "severity": db_blocker.get("severity", "MEDIUM"),
             "text": text,
         }
 
@@ -110,19 +108,19 @@ async def index_feedback(db_feedback: dict) -> str | None:
         from_name, to_name, type (praise/guidance/concern),
         content, date
     """
-    doc_id = f"feedback_{db_feedback['id']}"
+    doc_id = f"feedback_{db_feedback.get('id')}"
     try:
         text = serialise_feedback(db_feedback)
         vector = await embed_text(text)
 
         metadata = {
             "doc_id": doc_id,
-            "employee_id": str(db_feedback["to_employee_id"]),
-            "team_id": str(db_feedback["team_id"]),
-            "full_name": db_feedback["to_name"],
+            "employee_id": str(db_feedback.get("to_employee_id", "")),
+            "team_id": str(db_feedback.get("team_id", "")),
+            "full_name": db_feedback.get("to_name", ""),
             "date": str(db_feedback.get("date", date.today())),
             "doc_type": "feedback",
-            "feedback_type": db_feedback["type"],
+            "feedback_type": db_feedback.get("type", "guidance"),
             "text": text,
         }
 

@@ -1,3 +1,5 @@
+# frontend/pages/mentor/mentor_dashboard.py
+
 from __future__ import annotations
 
 import pandas as pd
@@ -10,7 +12,12 @@ from utils.session import SessionManager
 
 
 def _mentor_id() -> int:
-    return int((SessionManager.get_user() or {}).get("id", 2))
+    user = SessionManager.get_user() or {}
+    mentor_id = user.get("id")
+    if not mentor_id:
+        st.error("Session expired or missing user context.")
+        st.stop()
+    return int(mentor_id)
 
 
 def _handle_error(exc: Exception) -> None:
@@ -30,12 +37,12 @@ def _mentee_frame(rows: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
-                "Employee": row["name"],
-                "Role": row["role"],
-                "Last Update": row["last_update"],
-                "Risk Score": row["risk_score"],
-                "Risk": row["risk"],
-                "Open Blockers": row["open_blockers"],
+                "Employee": row.get("name", "Unknown"),
+                "Role": row.get("role", "employee"),
+                "Last Update": row.get("last_update", "N/A"),
+                "Risk Score": row.get("risk_score", 0),
+                "Risk": row.get("risk", "LOW"),
+                "Open Blockers": row.get("open_blockers", 0),
                 "Confidence": row.get("confidence", "N/A"),
             }
             for row in rows
@@ -45,7 +52,7 @@ def _mentee_frame(rows: list[dict]) -> pd.DataFrame:
 
 def show_mentor_dashboard() -> None:
     user = SessionManager.get_user() or {}
-    section_header("Mentor Dashboard", f"{user.get('name', 'Mentor')} can guide growth and keep feedback actionable.")
+    section_header("Mentor Dashboard", f"{user.get('name', 'Mentor')} — Guide growth and keep feedback actionable.")
     try:
         mentees = _mentees()
     except Exception as exc:
@@ -56,16 +63,24 @@ def show_mentor_dashboard() -> None:
     with cols[0]:
         metric_card("Mentees", str(len(mentees)), "Assigned", "info")
     with cols[1]:
-        metric_card("High risk", str(len([m for m in mentees if m['risk'].upper() == 'High'])), "Watch", "warning")
+        high_risk_count = len([m for m in mentees if str(m.get('risk', '')).upper() == 'HIGH'])
+        metric_card("High risk", str(high_risk_count), "Watch", "warning")
     with cols[2]:
-        metric_card("Open blockers", str(sum(m["open_blockers"] for m in mentees)), "Live", "danger")
+        open_blockers = sum(m.get("open_blockers", 0) for m in mentees)
+        metric_card("Open blockers", str(open_blockers), "Live", "danger")
     with cols[3]:
-        metric_card("Avg confidence", f"{sum(m.get('confidence', 0) for m in mentees) / max(len(mentees), 1):.1f}", "Backend", "success")
+        conf_values = [m.get("confidence", 0) for m in mentees if isinstance(m.get("confidence"), (int, float))]
+        avg_conf = (sum(conf_values) / max(len(conf_values), 1)) if conf_values else 0.0
+        metric_card("Avg confidence", f"{avg_conf:.1f}", "Backend", "success")
 
     st.subheader("Assigned mentees")
     st.dataframe(_mentee_frame(mentees), hide_index=True, width="stretch")
     if not mentees:
         empty_state("No assigned mentees", "Assigned mentees will appear here once available.")
+
+
+FEEDBACK_TYPE_MAP = {"Praise": "praise", "Guidance": "guidance", "Concern": "concern"}
+FEEDBACK_VISIBILITY_MAP = {"Employee only": "employee_only", "Employee and manager": "manager_only"}
 
 
 def feedback_composer(employee: dict | None = None) -> None:
@@ -75,23 +90,32 @@ def feedback_composer(employee: dict | None = None) -> None:
     except Exception as exc:
         _handle_error(exc)
         return
+
     if not mentees:
         empty_state("No assigned mentees", "Assigned mentees will appear here once available.")
         return
-    selected = employee or st.selectbox("Mentee", mentees, format_func=lambda row: row["name"])
-    with st.form(f"feedback_form_{selected['id']}"):
+
+    selected = employee or st.selectbox("Mentee", mentees, format_func=lambda row: row.get("name", "Unknown"))
+    with st.form(f"feedback_form_{selected.get('id')}"):
         kind = st.selectbox("Type", ["Praise", "Guidance", "Concern"])
         visibility = st.radio("Visibility", ["Employee only", "Employee and manager"], horizontal=True)
         message = st.text_area("Message", max_chars=1000, placeholder="Write specific, actionable feedback...")
         st.caption(f"{len(message)} / 1000 characters")
-        sent = st.form_submit_button(f"Send feedback to {selected['name']}", type="primary", width="stretch")
+        sent = st.form_submit_button(f"Send feedback to {selected.get('name', 'Mentee')}", type="primary", width="stretch")
+
     if sent:
         if len(message.strip()) < 10:
             st.error("Feedback must be at least 10 characters.")
             return
         try:
-            response = MentorService.send_feedback({"employee_id": selected["id"], "type": kind, "message": message, "visibility": visibility})
-            st.success(response.get("message", f"{kind} feedback sent to {selected['name']}."))
+            payload = {
+                "mentee_id": selected["id"],
+                "type": FEEDBACK_TYPE_MAP.get(kind, kind.lower()),
+                "message": message.strip(),
+                "visibility": FEEDBACK_VISIBILITY_MAP.get(visibility, "employee_only")
+            }
+            response = MentorService.send_feedback(payload)
+            st.success(response.get("message", f"{kind} feedback sent to {selected.get('name')}."))
         except Exception as exc:
             _handle_error(exc)
 
@@ -107,7 +131,11 @@ def feedback_history(employee_id: int | None = None) -> None:
     except Exception as exc:
         _handle_error(exc)
         return
-    st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+
+    if not rows:
+        empty_state("No feedback history", "Sent feedback items will appear here.")
+    else:
+        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
 
 
 def show_mentees_page() -> None:
@@ -117,23 +145,27 @@ def show_mentees_page() -> None:
     except Exception as exc:
         _handle_error(exc)
         return
+
     if not mentees:
         empty_state("No assigned mentees", "Assigned mentees will appear here once available.")
         return
-    selected = st.selectbox("Select mentee", mentees, format_func=lambda row: row["name"])
+
+    selected = st.selectbox("Select mentee", mentees, format_func=lambda row: row.get("name", "Unknown"))
     risk = MentorService.risk(selected["id"])
     updates = MentorService.updates(selected["id"])
+
     cols = st.columns(4)
     with cols[0]:
-        metric_card("Risk score", str(risk["score"]), risk["label"], "warning")
+        metric_card("Risk score", str(risk.get("score", 0)), risk.get("label", "LOW"), "warning")
     with cols[1]:
-        metric_card("Confidence", str(selected.get("confidence", "N/A")), selected.get("risk_trend", "N/A"), "info")
+        metric_card("Confidence", str(selected.get("confidence", "N/A")), selected.get("risk_trend", "Stable"), "info")
     with cols[2]:
-        metric_card("Open blockers", str(selected["open_blockers"]), "Live", "danger")
+        metric_card("Open blockers", str(selected.get("open_blockers", 0)), "Live", "danger")
     with cols[3]:
-        metric_card("Last update", selected["last_update"], "Backend", "success")
+        metric_card("Last update", str(selected.get("last_update", "N/A")), "Backend", "success")
+
     items = [
-        {"label": "Daily update", "content": f"{row['created_at']} - {row['work_done']}", "status": "completed"}
+        {"label": "Daily update", "content": f"{row.get('created_at', '')} - {row.get('work_done', '')}", "status": "completed"}
         for row in updates
     ]
     if items:
@@ -148,5 +180,5 @@ def show_feedback_composer_page() -> None:
 
 
 def show_feedback_history_page() -> None:
-    section_header("Feedback History", "Last 30 days of feedback.")
+    section_header("Feedback History", "Review past feedback entries.")
     feedback_history()

@@ -56,11 +56,10 @@ async def lifespan(app: FastAPI):
 
     try:
         from api.v1.auth import init_db, seed_default_users
-    except ModuleNotFoundError:
-        from api.v1.auth import init_db, seed_default_users
-
-    await init_db()
-    await seed_default_users()
+        await init_db()
+        await seed_default_users()
+    except Exception as exc:
+        logger.warning("Auto-seeding skipped: %s", exc)
 
     yield   # application runs here
 
@@ -98,7 +97,7 @@ app.add_middleware(
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 
-app.include_router(ai_router)                          # /api/v1/ai/*
+app.include_router(ai_router, prefix="/api/v1")                          # /api/v1/ai/*
 app.include_router(auth_router, prefix="/api/v1")       # /api/v1/auth/*
 app.include_router(tasks_router, prefix="/api/v1")
 app.include_router(dashboard_router, prefix="/api/v1")

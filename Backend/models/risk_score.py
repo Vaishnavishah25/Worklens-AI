@@ -47,7 +47,7 @@ class RiskScore(Base):
         back_populates="risk_scores"
     )
 
-    team_id: Mapped[int] = mapped_column(
-        Integer,
+    team_id: Mapped[int | None] = mapped_column(
+        ForeignKey("teams.id"),
         nullable=True
     )

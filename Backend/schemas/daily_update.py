@@ -2,7 +2,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
-from uuid import UUID
 
 class UpdateCreate(BaseModel):
     work_done: str = Field(..., min_length=10)
@@ -13,11 +12,14 @@ class UpdateCreate(BaseModel):
 
 class UpdateResponse(BaseModel):
     id: int
-    confidence_score: int
+    employee_id: int
     work_done: str
+    next_steps: str
+    confidence_score: int
+    created_at: datetime
+
     risk_assigned: str
     severity: Optional[str] = None
-    next_steps: str
 
     class Config:
         from_attributes = True

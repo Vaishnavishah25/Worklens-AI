@@ -7,7 +7,7 @@ import streamlit as st
 from services.auth_services import AuthService
 from theme.theme import footer_note
 import os
-SHOW_DEMO = os.getenv("DEMO_MODE","false").lower() == True
+SHOW_DEMO = os.getenv("DEMO_MODE", "false").lower() == "true"
 
 DEMO_ACCOUNTS = {
     "Manager": {

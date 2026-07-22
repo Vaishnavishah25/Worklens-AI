@@ -40,16 +40,22 @@ class AuthService:
             "role": role.strip().lower(),
             "manager_id": manager_id,
         }
+        
         try:
             response = APIClient.post("/auth/signup", payload, include_auth=False)
         except APIClientError as exc:
             return False, exc.user_message
 
+        access_token = response.get("access_token")
+        refresh_token = response.get("refresh_token")
+        if not access_token or not refresh_token:
+            return False, "Signup succeeded but authentication tokens were missing."
+
         user = response.get("user", {})
         SessionManager.login(
             user=user,
-            access_token=response["access_token"],
-            refresh_token=response["refresh_token"],
+            access_token=access_token,
+            refresh_token=refresh_token,
         )
         return True, "Account created successfully."
 

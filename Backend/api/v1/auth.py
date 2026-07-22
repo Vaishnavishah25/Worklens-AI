@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from database.session import get_db
 from models.user import User
 from repositories.user_repo import EmployeeRepository
-from auth.password import get_password_hash, verify_password
+from auth.password import get_password_hash, verify_password, validate_password_strength
 from auth.jwt import create_access_token, decode_access_token
 from sqlalchemy import select, text
 from database.base import Base
@@ -26,10 +26,9 @@ class SignupRequest(BaseModel):
     @field_validator("password")
     @classmethod
     def validate_password_complexity(cls, value: str) -> str:
-        if not any(char.isdigit() for char in value):
-            raise ValueError("Password must contain at least one digit.")
-        if not any(char.isalpha() for char in value):
-            raise ValueError("Password must contain at least one letter.")
+        is_valid, error_message = validate_password_strength(value)
+        if not is_valid:
+            raise ValueError(error_message)
         return value
 
 class LoginRequest(BaseModel):
@@ -142,33 +141,35 @@ async def signup(payload: SignupRequest, db: AsyncSession = Depends(get_db)):
     the secure native bcrypt hash wrapper before database ingestion.
     """
     repo = EmployeeRepository(db)
-    
+
+    normalized_email = payload.email.lower()
+
     # 1. Check if the identity already exists
-    existing_user = await repo.get_by_email(payload.email)
+    existing_user = await repo.get_by_email(normalized_email)
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email address is already registered."
         )
-    
+
     # 2. Hash raw credentials securely using native bcrypt
     hashed_password_string = get_password_hash(payload.password)
-    
+
     # 3. Instantiate model mapping directly to verified DB columns
     new_user = User(
         name=payload.name,
-        email=payload.email,
-        password=hashed_password_string,
+        email=normalized_email,
+        hashed_password=hashed_password_string,
         role=payload.role,
         manager_id=payload.manager_id
     )
-    
+
     # 4. Save entity into PostgreSQL
     created_user = await repo.create_user(new_user)
-    
+
     token_claims = _token_claims(created_user)
-    access_token = create_access_token(data=token_claims)
-    refresh_token = create_access_token(data=token_claims, expires_delta=timedelta(days=7))
+    access_token = create_access_token(data=token_claims, token_type="access")
+    refresh_token = create_access_token(data=token_claims, expires_delta=timedelta(days=7), token_type="refresh")
 
     return {
         "message": "User registered successfully",
@@ -186,19 +187,20 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     cryptographically sound access and refresh token blocks.
     """
     repo = EmployeeRepository(db)
-    user = await repo.get_by_email(payload.email)
+    normalized_email = payload.email.lower()
+    user = await repo.get_by_email(normalized_email)
 
     # Validate user existence and check password hash concurrently
-    if not user or not verify_password(payload.password, user.password):
+    if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, 
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password credentials"
         )
     token_claims = _token_claims(user)
 
-    access_token = create_access_token(data=token_claims)
-    refresh_token = create_access_token(data=token_claims, expires_delta=timedelta(days=7))
-    
+    access_token = create_access_token(data=token_claims, token_type="access")
+    refresh_token = create_access_token(data=token_claims, expires_delta=timedelta(days=7), token_type="refresh")
+
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
@@ -208,16 +210,25 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/refresh")
-async def refresh_token(payload: TokenRefreshRequest):
+async def refresh_token(payload: TokenRefreshRequest, db: AsyncSession = Depends(get_db)):
     token_payload = decode_access_token(payload.refresh_token)
     if not token_payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
 
+    if token_payload.get("type") != "refresh":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token is not a refresh token")
+
+    user_email = token_payload.get("sub")
+    if not user_email:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token payload")
+
+    repo = EmployeeRepository(db)
+    user = await repo.get_by_email(user_email.lower())
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
     access_token = create_access_token(
-        data={
-            "sub": token_payload.get("sub"),
-            "role": token_payload.get("role"),
-            "user_id": token_payload.get("user_id"),
-        }
+        data=_token_claims(user),
+        token_type="access",
     )
     return {"access_token": access_token, "token_type": "bearer"}

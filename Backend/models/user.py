@@ -35,7 +35,7 @@ class User(Base):
         unique=True
     )
 
-    password: Mapped[str] = mapped_column(
+    hashed_password: Mapped[str] = mapped_column(
         String(255)
     )
 

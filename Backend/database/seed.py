@@ -31,7 +31,7 @@ async def seed_core_profiles():
             # Tier 1: Global Platform Administrator (Manager)
             manager = User(
                 email="test@worklens.ai",
-                hashed_password=manager_pwd,
+                password=manager_pwd,
                 role="manager",
                 full_name="Maya Chen"
             )
@@ -40,7 +40,7 @@ async def seed_core_profiles():
             # Tier 2: Targeted Team Supervisor (Mentor)
             mentor = User(
                 email="shruti@worklens.ai",
-                hashed_password=mentor_pwd,
+                password=mentor_pwd,
                 role="mentor",
                 full_name="Shruti Panda"
             )
@@ -52,7 +52,7 @@ async def seed_core_profiles():
             # Tier 3: Core Team Contributor (Employee bound to their explicit Mentor)
             employee = User(
                 email="sai@worklens.ai",
-                hashed_password=employee_pwd,
+                password=employee_pwd,
                 role="employee",
                 full_name="Sai Kumar",
                 mentor_id=mentor.id  # Structurally links the mentee to Shruti

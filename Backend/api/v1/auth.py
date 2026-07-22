@@ -67,8 +67,26 @@ async def init_db():
     """
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text("""
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'users' AND column_name = 'password'
+                ) AND NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'users' AND column_name = 'hashed_password'
+                ) THEN
+                    ALTER TABLE users RENAME COLUMN password TO hashed_password;
+                END IF;
+            END $$;
+        """))
+
+        await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS team_id INTEGER;"))
         await conn.execute(text("ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS employee_id INTEGER;"))
         await conn.execute(text("ALTER TABLE daily_updates ADD COLUMN IF NOT EXISTS next_steps TEXT;"))
+        await conn.execute(text("ALTER TABLE risk_scores ADD COLUMN IF NOT EXISTS team_id INTEGER;"))
+
         await conn.execute(text("""
             DO $$
             BEGIN
@@ -92,7 +110,6 @@ async def init_db():
             END $$;
         """))
         await conn.execute(text("UPDATE daily_updates SET next_steps = 'Will be updated in next standup' WHERE next_steps IS NULL;"))
-        await conn.execute(text("ALTER TABLE risk_scores ADD COLUMN IF NOT EXISTS team_id INTEGER;"))
 
 
 async def seed_default_users():
@@ -112,19 +129,19 @@ async def seed_default_users():
             User(
                 name="Maya Chen",
                 email="manager@worklens.ai",
-                password=get_password_hash("manager123"),
+                hashed_password=get_password_hash("manager123"),
                 role="manager",
             ),
             User(
                 name="Ravi Mehta",
                 email="mentor@worklens.ai",
-                password=get_password_hash("mentor123"),
+                hashed_password=get_password_hash("mentor123"),
                 role="mentor",
             ),
             User(
                 name="Priya Shah",
                 email="employee@worklens.ai",
-                password=get_password_hash("employee123"),
+                hashed_password=get_password_hash("employee123"),
                 role="employee",
             ),
         ]
